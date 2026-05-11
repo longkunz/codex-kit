@@ -27,6 +27,9 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - `npx @daominhhiep/codex-kit install --target skills --scope local` to copy the shipped Codex Kit skills into local Codex.
 - `npx @daominhhiep/codex-kit sync --target skills --scope local` to overwrite local Codex skills with the shipped Codex Kit version.
 - `npx @daominhhiep/codex-kit remove --target skills --scope local --skills clean-code,planning` to remove specific Codex Kit skills from local Codex.
+- `npx @daominhhiep/codex-kit autoskills` to auto-detect the project's tech stack and install matching shipped skills into `.agents/skills/`.
+- `npx @daominhhiep/codex-kit autoskills --scope local` to install matching shipped skills into `${CODEX_HOME:-~/.codex}/skills` instead.
+- `npx @daominhhiep/codex-kit autoskills --dry-run` to preview the detected stack and matching skills without writing any files.
 
 ## Rules
 
@@ -56,6 +59,9 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - If the user asks to list installed local skills, run `npx @daominhhiep/codex-kit list --target skills --scope local`.
 - If the user asks to update both the workspace plugin and local skills, run `npx @daominhhiep/codex-kit sync-codex`.
 - If the user asks for initial full setup in the current repository, run `npx @daominhhiep/codex-kit setup-codex`.
+- If the user asks Codex Kit to auto-detect the stack and install the right skills (for example, "scan the project and install the skills I need"), run `npx @daominhhiep/codex-kit autoskills`.
+- If the user wants the same auto-detection but installed into local Codex, run `npx @daominhhiep/codex-kit autoskills --scope local`.
+- If the user wants to preview which skills autoskills would install, run `npx @daominhhiep/codex-kit autoskills --dry-run`.
 - If the user asks to use a Codex Kit workflow in the current repository, first check whether `.agents/workflows/<name>.md` exists in the workspace and then follow that workflow locally.
 - If the user asks for a workflow by an alias such as `ui-ux-promax`, map it to the canonical file name `ui-ux-pro-max`.
 - If the repository has Codex Kit scaffolding and the workflow file exists, do not search npm, package cache, or remote docs first.
@@ -68,6 +74,9 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - `cài skill frontend` -> search first, then suggest exact matches such as `frontend-design`, `nextjs-react-expert`, or `tailwind-patterns`
 - `xem local codex đã cài skill gì` -> `npx @daominhhiep/codex-kit list --target skills --scope local`
 - `đồng bộ lại plugin và skills` -> `npx @daominhhiep/codex-kit sync-codex`
+- `tự động cài skill theo stack` -> `npx @daominhhiep/codex-kit autoskills`
+- `auto detect stack and install skills` -> `npx @daominhhiep/codex-kit autoskills`
+- `xem trước autoskills` / `preview autoskills` -> `npx @daominhhiep/codex-kit autoskills --dry-run`
 - `dùng workflow ui-ux-promax của codex kit` -> resolve to `.agents/workflows/ui-ux-pro-max.md` in the current repository and follow that workflow
 - `use the plan workflow from codex kit` -> resolve to `.agents/workflows/plan.md` in the current repository and follow it directly
 - `follow the review workflow in this repo` -> use `.agents/workflows/review.md` from the workspace, not the npm package

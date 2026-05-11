@@ -5,7 +5,9 @@
 
 > Codex-native starter kit with scaffolded docs, skills, workflows, agents, plugin support, and local skill management.
 
-**[Official Website](https://codexkit.xyz/)** | **[Web Docs](https://codexkit.xyz/#/docs/introduction)** | **[Unikorn](https://unikorn.vn/p/codex-kit)**
+**[Official Website](https://codexkit.xyz/)** | **[Web Docs](https://codexkit.xyz/#/docs/introduction)**
+
+<a href="https://unikorn.vn/p/codex-kit?ref=embed-codex-kit" target="_blank"><img src="https://unikorn.vn/api/widgets/badge/codex-kit?theme=dark" alt="Codex Kit trên Unikorn.vn" style="width: 256px; height: 64px;" width="256" height="64" /></a>
 
 Codex Kit helps you bootstrap a repository that already knows how to work with Codex.
 
@@ -63,6 +65,9 @@ codex-kit list --target skills --scope local
 codex-kit list --target plugin
 codex-kit list --target mcp
 codex-kit remove --target skills --scope local --skills clean-code,planning
+codex-kit autoskills
+codex-kit autoskills --scope local
+codex-kit autoskills --dry-run
 codex-kit setup-codex
 codex-kit sync-codex
 codex-kit status
@@ -173,6 +178,20 @@ By default, local skills are installed into:
 ```text
 ${CODEX_HOME:-~/.codex}/skills
 ```
+
+## Autoskills
+
+Inspired by [midudev/autoskills](https://github.com/midudev/autoskills), Codex Kit ships its own auto-detection command. Instead of pulling from third-party registries, it scans the project stack and installs only the relevant skills from Codex Kit's audited catalog.
+
+```bash
+npx @daominhhiep/codex-kit autoskills
+npx @daominhhiep/codex-kit autoskills --scope local
+npx @daominhhiep/codex-kit autoskills --dry-run
+```
+
+The scanner inspects `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, framework config files (Next.js, Tailwind, Playwright, Vitest, ...) and file extensions (`.sh`, `.ps1`, `.tsx`, ...). It also recognizes cross-stack combos such as `React + Tailwind CSS`, `Next.js + Playwright`, or `FastAPI + SQLAlchemy`, and adds a small "frontend bonus" (design + SEO) when a web frontend is detected.
+
+Project-scope installs land in `.agents/skills/<skill>/` next to the rest of the Codex Kit scaffold, and write a digest of the run to `.codex-kit/autoskills-lock.json`. Local-scope installs land in `${CODEX_HOME:-~/.codex}/skills`. Pass `--force` to overwrite existing files; the default behavior is non-destructive.
 
 To browse or search the shipped catalog:
 

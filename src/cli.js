@@ -26,6 +26,7 @@ import {
   statusManagedMcp,
   syncManagedMcp
 } from "./lib/mcp.js";
+import { runAutoskills } from "./lib/autoskills.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageJsonPath = path.resolve(__dirname, "../package.json");
@@ -76,6 +77,12 @@ Dedicated mixed-scope commands:
             Scaffold the workspace plugin and install shipped skills locally
   sync-codex
             Sync the workspace plugin and local shipped skills after upgrading Codex Kit
+  autoskills
+            Auto-detect the project stack and install matching shipped skills
+  autoskills --scope local
+            Install matching shipped skills into local Codex (\`\${CODEX_HOME}/skills\`)
+  autoskills --dry-run
+            Preview the detected stack and matching skills without writing files
   status
             Show scaffold-managed file status for the target project
 
@@ -252,6 +259,10 @@ function normalizeOperation(options) {
       return buildOperation("setup-codex", options);
     case "sync-codex":
       return buildOperation("sync-codex", options);
+    case "autoskills":
+      return buildOperation("autoskills", options, {
+        scope: options.scope || "project"
+      });
     case "status":
       return buildOperation("status", options);
     default:
@@ -789,6 +800,78 @@ export async function runCli(argv) {
       if (updateResult.skipped.length > 0) {
         console.log(`Project scope: skipped ${updateResult.skipped.length} locally modified workspace files`);
       }
+    }
+    return;
+  }
+
+  if (operation.action === "autoskills") {
+    if (!["project", "local"].includes(operation.scope)) {
+      throw new Error("`autoskills --scope` must be either `project` or `local`.");
+    }
+
+    const result = await runAutoskills({
+      projectDir: operation.path,
+      skillsRoot,
+      codexHome: operation.codexHome,
+      scope: operation.scope,
+      dryRun: operation.dryRun,
+      force: operation.force
+    });
+
+    if (operation.quiet) {
+      return;
+    }
+
+    const scopeLabel = operation.scope === "local" ? "Local" : "Project";
+
+    if (result.detected.length === 0 && !result.isFrontend) {
+      console.log(`${scopeLabel} scope: no supported technologies detected in ${operation.path}.`);
+      console.log("Run inside a project root with a recognizable stack (package.json, pyproject.toml, Cargo.toml, etc.).");
+      return;
+    }
+
+    if (result.detected.length > 0) {
+      console.log(`${scopeLabel} scope: detected technologies (${result.detected.length}):`);
+      for (const tech of result.detected) {
+        console.log(`  - ${tech.name}`);
+      }
+    } else if (result.isFrontend) {
+      console.log(`${scopeLabel} scope: detected a generic web frontend project (from file extensions).`);
+    }
+
+    if (result.combos.length > 0) {
+      console.log(`\n${scopeLabel} scope: detected combos (${result.combos.length}):`);
+      for (const combo of result.combos) {
+        console.log(`  - ${combo.name}`);
+      }
+    }
+
+    if (result.skills.length === 0) {
+      console.log(`\n${scopeLabel} scope: no matching shipped skills found for the detected stack.`);
+      return;
+    }
+
+    console.log(`\n${scopeLabel} scope: matching shipped Codex Kit skills (${result.skills.length}):`);
+    for (const skill of result.skills) {
+      console.log(`  - ${skill.name} [${skill.category}]`);
+      console.log(`      ← ${skill.sources.join(", ")}`);
+    }
+
+    if (result.unknown.length > 0) {
+      console.log(`\n${scopeLabel} scope: skill names without a shipped match: ${result.unknown.join(", ")}`);
+    }
+
+    if (operation.dryRun) {
+      console.log(`\n${scopeLabel} scope: --dry-run, nothing installed.`);
+      console.log(`Would install into ${result.installTargetDir}`);
+      return;
+    }
+
+    console.log(
+      `\n${scopeLabel} scope: wrote ${result.totalWritten} skill files into ${result.installTargetDir}`
+    );
+    if (result.totalSkipped > 0) {
+      console.log(`${scopeLabel} scope: skipped ${result.totalSkipped} existing skill files (use --force to overwrite)`);
     }
     return;
   }

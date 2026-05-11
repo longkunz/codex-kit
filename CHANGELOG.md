@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here.
 
+## [v0.2.0] - 2026-05-11
+
+Release: [v0.2.0](https://github.com/daominhhiep/codex-kit/releases/tag/v0.2.0)
+
+### Added
+
+- Added `autoskills` CLI command that scans the project stack (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, framework config files, file extensions, and content patterns) and installs only the matching shipped Codex Kit skills.
+- Added 48 technology detectors and 8 cross-stack combo detectors (e.g. React + Tailwind CSS, Next.js + Playwright, FastAPI + SQLAlchemy) plus a frontend bonus bundle (`frontend-design`, `web-design-guidelines`, `seo-fundamentals`).
+- Added `autoskills --scope local` to install matching skills into `${CODEX_HOME:-~/.codex}/skills`, and `autoskills --dry-run` to preview without writing.
+- Added `.codex-kit/autoskills-lock.json` so each autoskills run is auditable (detected stack, combos, matched skills, install scope).
+- Added `figma-to-code` workflow and a default `codex/rules/default.rules` execution policy template for project scaffolding.
+- Added favicon and apple-touch-icon assets for the web docs site.
+
+### Improved
+
+- Migrated the web docs site from hash-based routing to standard URL paths with server-side rendering support.
+- Expanded the workspace plugin skill so Codex can route natural language requests like "scan stack and install skills" or "tự động cài skill theo stack" to `npx @daominhhiep/codex-kit autoskills`.
+- Inspired by [midudev/autoskills](https://github.com/midudev/autoskills): instead of fetching from third-party registries, autoskills selects from Codex Kit's audited shipped catalog so installs stay supply-chain safe.
+
 ## [v0.1.4] - 2026-04-02
 
 Release: [v0.1.4](https://github.com/daominhhiep/codex-kit/releases/tag/v0.1.4)

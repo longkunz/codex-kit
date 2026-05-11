@@ -1,6 +1,6 @@
 {
   "name": "codex-kit",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Codex Kit plugin for scaffolding repositories, using local Codex Kit workflows, discovering shipped skills, and setting up local Codex.",
   "author": {
     "name": "Dao Minh Hiep",
