@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python hooks/user_prompt_secret_scan.py"
+            "command": "node hooks/user_prompt_secret_scan.mjs"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python hooks/pre_tool_use_policy.py"
+            "command": "node hooks/pre_tool_use_policy.mjs"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python hooks/stop_validation.py"
+            "command": "node hooks/stop_validation.mjs"
           }
         ]
       }
