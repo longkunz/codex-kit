@@ -459,8 +459,13 @@ async function validatePlugin(targetDir, pluginRoot, version, reporter) {
     reporter.fail("plugin", `Marketplace codex-kit plugin path should be ./${PLUGIN_TARGET_ROOT}`, "plugin");
     return;
   }
-  if (!pluginEntry.policy || !["AVAILABLE", "INSTALLED_BY_DEFAULT"].includes(pluginEntry.policy.installation)) {
-    reporter.fail("plugin", "Marketplace plugin installation policy is invalid", "plugin");
+  // Policy must be AVAILABLE: the documented flow requires explicit `codex plugin add`
+  if (pluginEntry.policy?.installation !== "AVAILABLE") {
+    reporter.fail(
+      "plugin",
+      `Marketplace codex-kit plugin installation policy should be AVAILABLE (got: ${pluginEntry.policy?.installation ?? "missing"})`,
+      "plugin"
+    );
     return;
   }
   if (!pluginEntry.policy || !["ON_INSTALL", "ON_USE"].includes(pluginEntry.policy.authentication)) {
@@ -521,6 +526,7 @@ async function validateManifest({ targetDir, templateRoot, pluginRoot, hookRoot,
   const files = normalizeManifestFiles(manifest);
   const missing = [];
   const modified = [];
+  const marketplaceModified = [];
   const unmanaged = [];
   for (const file of files) {
     const destination = path.join(targetDir, file.path);
@@ -533,7 +539,12 @@ async function validateManifest({ targetDir, templateRoot, pluginRoot, hookRoot,
       continue;
     }
     if (sha256(await readText(destination)) !== file.installedHash) {
-      modified.push(file.path);
+      // Marketplace modifications are expected user customizations; surface as warn
+      if (normalizePath(file.path) === MARKETPLACE_PATH) {
+        marketplaceModified.push(file.path);
+      } else {
+        modified.push(file.path);
+      }
     }
   }
   if (missing.length > 0) {
@@ -543,6 +554,9 @@ async function validateManifest({ targetDir, templateRoot, pluginRoot, hookRoot,
   }
   if (modified.length > 0) {
     reporter.fail("manifest", `${modified.length} managed file(s) are locally modified`, "project");
+  }
+  if (marketplaceModified.length > 0) {
+    reporter.warn("manifest", `Marketplace file has been locally modified; sync with --force to reset`, "plugin");
   }
   if (unmanaged.length > 0) {
     reporter.warn("manifest", `${unmanaged.length} existing file(s) remain unmanaged`, "project");
