@@ -137,22 +137,52 @@ async function migrateRulesIfSafe(targetDir) {
   return true;
 }
 
-async function currentFileEntry(targetDir, relativePath, templateHash = null) {
+async function currentFileEntry(targetDir, relativePath, templateHash = null, previous = null) {
   const destination = path.join(targetDir, relativePath);
   if (!(await pathExists(destination))) {
     return null;
   }
-  const installedHash = sha256(await readText(destination));
+  const currentHash = sha256(await readText(destination));
+  if (previous?.status === "unmanaged" || (previous && !previous.installedHash)) {
+    const { installedHash: _ignored, ...unmanaged } = previous;
+    return {
+      ...unmanaged,
+      status: "unmanaged",
+      observedHash: previous.observedHash || currentHash
+    };
+  }
+  if (previous?.installedHash) {
+    return previous;
+  }
+  if (templateHash && currentHash === templateHash) {
+    return {
+      path: normalizePath(relativePath),
+      target: inferTarget(relativePath),
+      status: "managed",
+      templateHash,
+      installedHash: currentHash
+    };
+  }
   return {
     path: normalizePath(relativePath),
     target: inferTarget(relativePath),
-    templateHash: templateHash || installedHash,
-    installedHash
+    status: "unmanaged",
+    templateHash,
+    observedHash: currentHash
   };
 }
 
-async function collectExistingTemplateEntries({ targetDir, templateRoot, pluginRoot, hookRoot }) {
+async function collectExistingTemplateEntries({
+  targetDir,
+  templateRoot,
+  pluginRoot,
+  hookRoot,
+  existingManifest
+}) {
   const entries = [];
+  const existingByKey = new Map(
+    normalizeManifestFiles(existingManifest).map((file) => [`${file.target}:${file.path}`, file])
+  );
   const projectTemplates = await loadTemplateFiles(templateRoot);
   const pluginTemplates = (await loadTemplateFiles(pluginRoot)).map((template) => ({
     ...template,
@@ -161,13 +191,25 @@ async function collectExistingTemplateEntries({ targetDir, templateRoot, pluginR
   const hookTemplates = await loadTemplateFiles(hookRoot);
 
   for (const template of projectTemplates.concat(pluginTemplates, hookTemplates)) {
-    const entry = await currentFileEntry(targetDir, template.relativePath, template.templateHash);
+    const relativePath = normalizePath(template.relativePath);
+    const target = inferTarget(relativePath);
+    const entry = await currentFileEntry(
+      targetDir,
+      relativePath,
+      template.templateHash,
+      existingByKey.get(`${target}:${relativePath}`)
+    );
     if (entry) {
       entries.push(entry);
     }
   }
 
-  const marketplace = await currentFileEntry(targetDir, MARKETPLACE_PATH);
+  const marketplace = await currentFileEntry(
+    targetDir,
+    MARKETPLACE_PATH,
+    null,
+    existingByKey.get(`plugin:${MARKETPLACE_PATH}`)
+  );
   if (marketplace) {
     marketplace.target = "plugin";
     entries.push(marketplace);
@@ -183,7 +225,8 @@ async function resyncManifest({ targetDir, templateRoot, pluginRoot, hookRoot, v
     targetDir,
     templateRoot,
     pluginRoot,
-    hookRoot
+    hookRoot,
+    existingManifest: existing
   });
   const byKey = new Map(existingFiles.map((file) => [`${file.target}:${file.path}`, file]));
   for (const entry of knownEntries) {
@@ -463,15 +506,32 @@ async function validateManifest({ targetDir, templateRoot, pluginRoot, hookRoot,
 
   const files = normalizeManifestFiles(manifest);
   const missing = [];
+  const modified = [];
+  const unmanaged = [];
   for (const file of files) {
-    if (!(await pathExists(path.join(targetDir, file.path)))) {
+    const destination = path.join(targetDir, file.path);
+    if (!(await pathExists(destination))) {
       missing.push(file.path);
+      continue;
+    }
+    if (file.status === "unmanaged" || !file.installedHash) {
+      unmanaged.push(file.path);
+      continue;
+    }
+    if (sha256(await readText(destination)) !== file.installedHash) {
+      modified.push(file.path);
     }
   }
   if (missing.length > 0) {
     reporter.fail("manifest", `${missing.length} manifest-tracked file(s) are missing`, "project");
   } else {
     reporter.ok("manifest", `${files.length} manifest-tracked file(s) exist`, "project");
+  }
+  if (modified.length > 0) {
+    reporter.fail("manifest", `${modified.length} managed file(s) are locally modified`, "project");
+  }
+  if (unmanaged.length > 0) {
+    reporter.warn("manifest", `${unmanaged.length} existing file(s) remain unmanaged`, "project");
   }
 
   const targets = new Set(files.map((file) => file.target));

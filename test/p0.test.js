@@ -9,7 +9,8 @@ import {
   initProject,
   installProjectHooks,
   installWorkspacePlugin,
-  statusWorkspacePlugin
+  statusWorkspacePlugin,
+  updateProject
 } from "../src/lib/kit.js";
 import { readManifest } from "../src/lib/manifest.js";
 import {
@@ -215,5 +216,113 @@ test("doctor --fix resyncs manifest tracking for existing plugin files", async (
 
     const fixedManifest = await readManifest(targetDir);
     assert.ok(fixedManifest.files.some((file) => file.target === "plugin"));
+  });
+});
+
+test("pre-existing AGENTS.md remains unmanaged and survives sync", async () => {
+  await withTempProject(async (targetDir) => {
+    const agentsPath = path.join(targetDir, "AGENTS.md");
+    await writeFile(agentsPath, "user-owned content\n", "utf8");
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await updateProject({ targetDir, templateRoot, pluginRoot, version });
+    await runDoctor({
+      targetDir,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: path.join(targetDir, "codex-home"),
+      version,
+      fix: true
+    });
+
+    assert.equal(await readFile(agentsPath, "utf8"), "user-owned content\n");
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find((file) => file.path === "AGENTS.md");
+    assert.equal(entry.status, "unmanaged");
+    assert.equal(Object.hasOwn(entry, "installedHash"), false);
+    assert.equal(typeof entry.observedHash, "string");
+  });
+});
+
+test("doctor reports a user edit to a managed AGENTS.md", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await writeFile(path.join(targetDir, "AGENTS.md"), "user edit\n", "utf8");
+
+    const result = await runDoctor({
+      targetDir,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: path.join(targetDir, "codex-home"),
+      version
+    });
+
+    assert.ok(
+      result.checks.some(
+        (check) => check.status === "fail" && check.message.includes("managed file(s) are locally modified")
+      )
+    );
+  });
+});
+
+test("doctor --fix preserves a user edit and its managed baseline", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const before = await readManifest(targetDir);
+    const beforeEntry = before.files.find((file) => file.path === "AGENTS.md");
+    const agentsPath = path.join(targetDir, "AGENTS.md");
+    await writeFile(agentsPath, "user edit\n", "utf8");
+
+    const result = await runDoctor({
+      targetDir,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: path.join(targetDir, "codex-home"),
+      version,
+      fix: true
+    });
+
+    const after = await readManifest(targetDir);
+    const afterEntry = after.files.find((file) => file.path === "AGENTS.md");
+    assert.equal(await readFile(agentsPath, "utf8"), "user edit\n");
+    assert.equal(afterEntry.installedHash, beforeEntry.installedHash);
+    assert.equal(afterEntry.status, "managed");
+    assert.ok(result.checks.some((check) => check.status === "fail" && check.message.includes("locally modified")));
+  });
+});
+
+test("repeated init preserves unchanged managed ownership", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const before = await readManifest(targetDir);
+    const beforeEntry = before.files.find((file) => file.path === "AGENTS.md");
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const after = await readManifest(targetDir);
+    const afterEntry = after.files.find((file) => file.path === "AGENTS.md");
+    assert.deepEqual(afterEntry, beforeEntry);
+  });
+});
+
+test("sync --force overwrites edits and establishes a clean managed baseline", async () => {
+  await withTempProject(async (targetDir) => {
+    const agentsPath = path.join(targetDir, "AGENTS.md");
+    await writeFile(agentsPath, "user-owned content\n", "utf8");
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    await updateProject({ targetDir, templateRoot, pluginRoot, version, force: true });
+
+    assert.equal(
+      await readFile(agentsPath, "utf8"),
+      await readFile(path.join(templateRoot, "AGENTS.md"), "utf8")
+    );
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find((file) => file.path === "AGENTS.md");
+    assert.equal(entry.status, "managed");
+    assert.equal(entry.installedHash, entry.templateHash);
   });
 });

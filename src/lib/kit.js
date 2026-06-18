@@ -194,21 +194,29 @@ async function writeProjectSubset({
     const currentHash = await getCurrentHash(destination);
     const previous = manifestByKey.get(manifestKey({ target: entryTarget, path: relativePath }));
     const exists = currentHash !== null;
+    const isUnmanaged = previous?.status === "unmanaged" || (previous && !previous.installedHash);
     const isLocallyModified =
       syncMode &&
       currentHash !== null &&
-      previous &&
-      previous.installedHash &&
+      previous?.installedHash &&
       currentHash !== previous.installedHash;
+    const isUntrackedExisting = syncMode && exists && !previous;
+    const isProtected = !force && (isUnmanaged || isLocallyModified || isUntrackedExisting);
 
-    if ((exists && !syncMode && !force) || (isLocallyModified && !force)) {
+    if ((exists && !syncMode && !force) || isProtected) {
       skipped.push(relativePath);
-      nextManifestFiles.push({
-        path: relativePath,
-        target: entryTarget,
-        templateHash: template.templateHash,
-        installedHash: currentHash || previous?.installedHash || template.templateHash
-      });
+      if (previous?.installedHash && previous.status !== "unmanaged") {
+        nextManifestFiles.push(previous);
+      } else {
+        const observedHash = currentHash || previous?.observedHash;
+        nextManifestFiles.push({
+          path: relativePath,
+          target: entryTarget,
+          status: "unmanaged",
+          templateHash: template.templateHash,
+          ...(observedHash ? { observedHash } : {})
+        });
+      }
       continue;
     }
 
@@ -220,6 +228,7 @@ async function writeProjectSubset({
     nextManifestFiles.push({
       path: relativePath,
       target: entryTarget,
+      status: "managed",
       templateHash: template.templateHash,
       installedHash: template.templateHash
     });
@@ -686,7 +695,11 @@ export async function statusProject({ targetDir, templateRoot, pluginRoot, versi
       missing.push(file.path);
       continue;
     }
-    if (file.installedHash && currentHash !== file.installedHash) {
+    if (
+      file.status === "unmanaged" ||
+      !file.installedHash ||
+      currentHash !== file.installedHash
+    ) {
       modified.push(file.path);
     }
     if (template && file.templateHash !== template.templateHash) {
@@ -739,7 +752,11 @@ export async function statusWorkspacePlugin({ targetDir, pluginRoot, version }) 
       missing.push(relativePath);
       continue;
     }
-    if (tracked.installedHash && currentHash !== tracked.installedHash) {
+    if (
+      tracked.status === "unmanaged" ||
+      !tracked.installedHash ||
+      currentHash !== tracked.installedHash
+    ) {
       modified.push(relativePath);
     }
     if (templateByPath.has(relativePath) && tracked.templateHash !== template.templateHash) {
