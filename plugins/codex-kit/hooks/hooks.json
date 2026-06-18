@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/user_prompt_secret_scan.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "bash|shell|exec|powershell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/pre_tool_use_policy.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/stop_validation.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 name = "debugger"
 description = "Debugging specialist for reproducing issues and isolating the failure mode."
-model = "gpt-5.4"
+# model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

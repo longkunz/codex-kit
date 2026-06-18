@@ -1,6 +1,6 @@
 name = "performance_optimizer"
 description = "Performance specialist for profiling, bottleneck analysis, runtime speed, bundle size, and Core Web Vitals."
-model = "gpt-5.4"
+# model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

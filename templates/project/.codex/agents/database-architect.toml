@@ -1,6 +1,6 @@
 name = "database_architect"
 description = "Database specialist for schema design, migrations, indexes, query patterns, and data integrity."
-model = "gpt-5.4"
+# model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

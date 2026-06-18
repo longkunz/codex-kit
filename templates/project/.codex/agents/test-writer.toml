@@ -1,6 +1,6 @@
 name = "test_writer"
 description = "Testing specialist for adding focused tests after behavior is understood."
-model = "gpt-5.3-codex"
+# model = "gpt-5.3-codex"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """

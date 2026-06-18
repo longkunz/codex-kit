@@ -50,6 +50,8 @@ Primary commands:
 
 ```bash
 codex-kit init
+codex-kit init --include-plugin
+codex-kit init --all
 codex-kit install
 codex-kit install --target plugin
 codex-kit install --target mcp
@@ -85,6 +87,8 @@ Common examples:
 
 ```bash
 codex-kit init --path ./my-project
+codex-kit init --path ./my-project --include-plugin
+codex-kit init --path ./my-project --all
 codex-kit install --path ./my-project
 codex-kit install --target plugin
 codex-kit install --target mcp
@@ -131,7 +135,8 @@ Codex Kit ships with a local Codex plugin scaffold:
 
 There are two different installation scopes:
 
-- project-local: `init` or plain `install` installs the scaffold, while `install --target plugin` or `install --target skills` add only those parts into the current repository
+- project-local: `init` or plain `install` installs the scaffold without the optional plugin; `init --include-plugin` adds the workspace plugin, and `init --all` adds the plugin plus project hooks
+- focused project-local installs: `install --target plugin` or `install --target skills` add only those parts into the current repository
 - project-local hooks: `install --target hooks` writes `.codex/hooks.json` and safe local hook scripts
 - project-local MCP: `install --target mcp` writes the shipped MCP bundle into `.codex/config.toml`
 - user-local: the shipped skill catalog is installed into `${CODEX_HOME:-~/.codex}/skills`
@@ -145,11 +150,31 @@ npx @daominhhiep/codex-kit init
 npx @daominhhiep/codex-kit install
 ```
 
+The default scaffold leaves the workspace plugin and hooks out. Include the plugin during init, or include every project-scoped optional bundle:
+
+```bash
+npx @daominhhiep/codex-kit init --include-plugin
+npx @daominhhiep/codex-kit init --all
+```
+
+`--all` includes the plugin and project hooks. It does not enable user-local memories.
+
 To install only the workspace plugin into the current project:
 
 ```bash
 npx @daominhhiep/codex-kit install --target plugin
 ```
+
+The installed plugin bundles its Codex Kit skill, safe local hooks, and the `context7` MCP configuration. Hook scripts do not make network calls or log prompt text, file contents, or environment values.
+
+For a freshly generated project marketplace, register the project and add the plugin with Codex CLI:
+
+```bash
+codex plugin marketplace add /path/to/project
+codex plugin add codex-kit@local-plugins
+```
+
+Run `codex-kit doctor` first to validate the marketplace name, source path, policy, plugin metadata, bundled hooks, MCP config, and package version. Codex Kit prepares the local marketplace files but does not modify the user's global Codex plugin registry.
 
 To install only the shipped project skills into the current project:
 
@@ -278,7 +303,9 @@ npx @daominhhiep/codex-kit doctor --json
 npx @daominhhiep/codex-kit doctor --fix
 ```
 
-Doctor validates `AGENTS.md`, skills, subagents, `.codex/config.toml`, rules, hooks, plugin metadata, manifest consistency, and local memory status. Warnings do not fail by default; `--strict` treats warnings as failures. `--fix` performs safe repairs such as legacy rules-path migration and manifest resync for generated files that already exist on disk.
+Doctor validates `AGENTS.md`, skills, subagents, `.codex/config.toml`, rules, hooks, plugin marketplace flow and metadata, bundled plugin hooks/MCP, manifest consistency, and local memory status. Warnings do not fail by default; `--strict` treats warnings as failures. `--fix` performs safe repairs such as legacy rules-path migration and manifest resync for generated files that already exist on disk.
+
+Default config and subagent templates leave model selections commented out, so Codex uses the account or environment default unless a project opts into an explicit model.
 
 ## Requirements
 

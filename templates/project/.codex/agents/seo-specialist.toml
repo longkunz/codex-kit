@@ -1,6 +1,6 @@
 name = "seo_specialist"
 description = "SEO and GEO specialist for search visibility, metadata, information architecture, structured content, and AI citation readiness."
-model = "gpt-5.4-mini"
+# model = "gpt-5.4-mini"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
