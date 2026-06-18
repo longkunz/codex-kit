@@ -1,7 +1,12 @@
 import path from "node:path";
 import { pathExists, readText, removePath, writeText } from "./fs.js";
 import { sha256 } from "./hash.js";
-import { MANIFEST_PATH, readManifest, writeManifest } from "./manifest.js";
+import {
+  MANIFEST_PATH,
+  readManifest,
+  replaceManifestFilePath,
+  writeManifest
+} from "./manifest.js";
 import {
   getInstalledShippedSkills,
   getSelectedShippedSkills,
@@ -30,7 +35,7 @@ function inferManifestTarget(filePath, fallback = "project") {
     return "rules";
   }
   if (normalized === ".codex/config.toml") {
-    return fallback;
+    return "mcp";
   }
   if (normalized.startsWith(`${PROJECT_SKILLS_TARGET_ROOT}/`)) {
     return "skills";
@@ -43,7 +48,10 @@ function normalizeManifestFiles(manifest) {
   const normalized = files.map((file) => ({
     ...file,
     path: normalizePath(file.path),
-    target: file.target || inferManifestTarget(file.path)
+    target:
+      normalizePath(file.path) === ".codex/config.toml"
+        ? "mcp"
+        : file.target || inferManifestTarget(file.path)
   }));
   const byKey = new Map();
   for (const file of normalized) {
@@ -194,21 +202,29 @@ async function writeProjectSubset({
     const currentHash = await getCurrentHash(destination);
     const previous = manifestByKey.get(manifestKey({ target: entryTarget, path: relativePath }));
     const exists = currentHash !== null;
+    const isUnmanaged = previous?.status === "unmanaged" || (previous && !previous.installedHash);
     const isLocallyModified =
       syncMode &&
       currentHash !== null &&
-      previous &&
-      previous.installedHash &&
+      previous?.installedHash &&
       currentHash !== previous.installedHash;
+    const isUntrackedExisting = syncMode && exists && !previous;
+    const isProtected = !force && (isUnmanaged || isLocallyModified || isUntrackedExisting);
 
-    if ((exists && !syncMode && !force) || (isLocallyModified && !force)) {
+    if ((exists && !syncMode && !force) || isProtected) {
       skipped.push(relativePath);
-      nextManifestFiles.push({
-        path: relativePath,
-        target: entryTarget,
-        templateHash: template.templateHash,
-        installedHash: currentHash || previous?.installedHash || template.templateHash
-      });
+      if (previous?.installedHash && previous.status !== "unmanaged") {
+        nextManifestFiles.push(previous);
+      } else {
+        const observedHash = currentHash || previous?.observedHash;
+        nextManifestFiles.push({
+          path: relativePath,
+          target: entryTarget,
+          status: "unmanaged",
+          templateHash: template.templateHash,
+          ...(observedHash ? { observedHash } : {})
+        });
+      }
       continue;
     }
 
@@ -220,6 +236,7 @@ async function writeProjectSubset({
     nextManifestFiles.push({
       path: relativePath,
       target: entryTarget,
+      status: "managed",
       templateHash: template.templateHash,
       installedHash: template.templateHash
     });
@@ -263,57 +280,166 @@ async function migrateLegacyRulesPath({ targetDir, force = false, dryRun = false
   return { migrated: true, warning: null };
 }
 
-async function ensurePluginMarketplace({ targetDir, dryRun = false }) {
-  const marketplacePath = path.join(targetDir, MARKETPLACE_PATH);
-  const pluginEntry = {
-    name: PLUGIN_NAME,
-    source: {
-      source: "local",
-      path: `./${PLUGIN_TARGET_ROOT}`
-    },
-    policy: {
-      installation: "INSTALLED_BY_DEFAULT",
-      authentication: "ON_INSTALL"
-    },
-    category: "Developer Tools"
-  };
+/**
+ * Default codex-kit marketplace entry fields that are always generated.
+ * The `category` is preserved from existing user content unless --force is used.
+ * Policy is AVAILABLE: the documented flow requires explicit `codex plugin add`.
+ */
+const DEFAULT_PLUGIN_ENTRY = {
+  name: PLUGIN_NAME,
+  source: {
+    source: "local",
+    path: `./${PLUGIN_TARGET_ROOT}`
+  },
+  policy: {
+    installation: "AVAILABLE",
+    authentication: "ON_INSTALL"
+  },
+  category: "Developer Tools"
+};
 
-  let marketplace = {
+/**
+ * Build the canonical marketplace JSON that should be written to disk.
+ * Existing user content (marketplace name, interface, other plugins, and the
+ * codex-kit entry's `category`) is preserved unless `force` is true.
+ */
+function buildMarketplaceContent(existingContent, force = false) {
+  const base = existingContent || {
     name: "local-plugins",
-    interface: {
-      displayName: "Local Plugins"
-    },
+    interface: { displayName: "Local Plugins" },
     plugins: []
   };
+  const plugins = Array.isArray(base.plugins) ? [...base.plugins] : [];
+  const existingIndex = plugins.findIndex((p) => p?.name === PLUGIN_NAME);
 
-  if (await pathExists(marketplacePath)) {
-    marketplace = JSON.parse(await readText(marketplacePath));
-  }
-
-  const plugins = Array.isArray(marketplace.plugins) ? marketplace.plugins : [];
-  const existingIndex = plugins.findIndex((plugin) => plugin?.name === PLUGIN_NAME);
-
-  if (existingIndex === -1) {
-    plugins.push(pluginEntry);
+  let newEntry;
+  if (force || existingIndex === -1) {
+    // On force or fresh install: write full canonical entry
+    newEntry = { ...DEFAULT_PLUGIN_ENTRY };
   } else {
-    plugins[existingIndex] = {
+    // Preserve user-customized fields (e.g. category) but enforce source and policy
+    newEntry = {
       ...plugins[existingIndex],
-      ...pluginEntry
+      ...DEFAULT_PLUGIN_ENTRY,
+      // Keep user-customized category unless it was absent
+      category: plugins[existingIndex].category || DEFAULT_PLUGIN_ENTRY.category
     };
   }
 
-  marketplace = {
-    name: marketplace.name || "local-plugins",
-    interface: {
-      displayName: marketplace.interface?.displayName || "Local Plugins"
-    },
-    ...marketplace,
-    plugins
-  };
+  if (existingIndex === -1) {
+    plugins.push(newEntry);
+  } else {
+    plugins[existingIndex] = newEntry;
+  }
+
+  return { ...base, plugins };
+}
+
+/**
+ * Ensure the marketplace file exists and tracks the codex-kit entry.
+ * Applies hash-aware ownership semantics identical to other generated files:
+ *   - Missing file: generate it and record a managed baseline.
+ *   - Managed unchanged file: safe to refresh.
+ *   - Managed modified file (syncMode): preserve without --force.
+ *   - Existing untracked file: treat as unmanaged; do not adopt without --force.
+ *   - --force: reset the codex-kit entry and establish a clean managed baseline.
+ *   - Invalid JSON: only replace when --force is explicit.
+ */
+async function ensurePluginMarketplace({
+  targetDir,
+  existingManifest,
+  version,
+  force = false,
+  dryRun = false,
+  syncMode = false
+}) {
+  const marketplacePath = path.join(targetDir, MARKETPLACE_PATH);
+  const mKey = `plugin:${MARKETPLACE_PATH}`;
+  const existingFiles = normalizeManifestFiles(existingManifest);
+  const previous = existingFiles.find((f) => `${f.target}:${f.path}` === mKey);
+  const currentHash = await getCurrentHash(marketplacePath);
+  const exists = currentHash !== null;
+
+  // Determine ownership state
+  const isUnmanaged = previous?.status === "unmanaged" || (previous && !previous.installedHash);
+  const isLocallyModified =
+    syncMode &&
+    exists &&
+    previous?.installedHash &&
+    currentHash !== previous.installedHash;
+  const isUntrackedExisting = syncMode && exists && !previous;
+  const isProtected = !force && (isUnmanaged || isLocallyModified || isUntrackedExisting);
+
+  // Protect on non-sync install when file exists and has no managed record
+  const isUntrackedExistingInit = !syncMode && exists && !previous;
+  const isProtectedInit = !force && isUntrackedExistingInit;
+
+  if (isProtected || isProtectedInit) {
+    // Do not write or adopt; return previous manifest record as-is
+    return { marketplaceWritten: false, nextManifestEntry: previous || null };
+  }
+
+  // Read existing content to preserve user customizations in other plugins/fields
+  let existingContent = null;
+  if (exists) {
+    try {
+      existingContent = JSON.parse(await readText(marketplacePath));
+    } catch {
+      // Invalid JSON: only replace if --force
+      if (!force) {
+        return { marketplaceWritten: false, nextManifestEntry: previous || null };
+      }
+    }
+  }
+
+  const marketplace = buildMarketplaceContent(existingContent, force);
+  const content = JSON.stringify(marketplace, null, 2) + "\n";
+  const contentHash = sha256(content);
 
   if (!dryRun) {
-    await writeText(marketplacePath, JSON.stringify(marketplace, null, 2) + "\n");
+    await writeText(marketplacePath, content);
   }
+
+  const nextEntry = {
+    path: MARKETPLACE_PATH,
+    target: "plugin",
+    status: "managed",
+    templateHash: contentHash,
+    installedHash: contentHash
+  };
+
+  return { marketplaceWritten: true, nextManifestEntry: nextEntry };
+}
+
+/**
+ * Merge a marketplace manifest entry into a list of manifest files.
+ * Replaces any existing entry for MARKETPLACE_PATH under target "plugin".
+ */
+function mergeMarketplaceEntry(manifestFiles, entry) {
+  if (!entry) {
+    return manifestFiles;
+  }
+  const filtered = manifestFiles.filter(
+    (f) => !(f.target === "plugin" && f.path === MARKETPLACE_PATH)
+  );
+  filtered.push(entry);
+  return filtered;
+}
+
+/**
+ * Write the marketplace manifest entry back into the on-disk manifest after
+ * writeProjectSubset has already written and updated it.
+ */
+async function persistMarketplaceEntry(targetDir, version, manifestEntry, featurePatch) {
+  if (!manifestEntry) {
+    return;
+  }
+  const manifest = await readManifest(targetDir);
+  const merged = mergeMarketplaceEntry(normalizeManifestFiles(manifest), manifestEntry);
+  await writeManifest(
+    targetDir,
+    buildManifest(version, merged, mergeManifestFeatures(manifest, featurePatch))
+  );
 }
 
 export async function installLocalSkills({
@@ -417,8 +543,16 @@ export async function initProject({
   force = false,
   dryRun = false
 }) {
-  const existingManifest = await readManifest(targetDir);
+  let existingManifest = await readManifest(targetDir);
   const rulesMigration = await migrateLegacyRulesPath({ targetDir, force, dryRun });
+  if (rulesMigration.migrated) {
+    existingManifest = replaceManifestFilePath(
+      existingManifest,
+      LEGACY_RULES_PATH,
+      RULES_PATH,
+      "rules"
+    );
+  }
   const templates = await loadManagedTemplates({
     templateRoot,
     pluginRoot,
@@ -440,7 +574,17 @@ export async function initProject({
   });
 
   if (installPlugin) {
-    await ensurePluginMarketplace({ targetDir, dryRun });
+    const { nextManifestEntry } = await ensurePluginMarketplace({
+      targetDir,
+      existingManifest,
+      version,
+      force,
+      dryRun,
+      syncMode: false
+    });
+    if (nextManifestEntry && !dryRun) {
+      await persistMarketplaceEntry(targetDir, version, nextManifestEntry, { installPlugin });
+    }
   }
 
   return {
@@ -474,7 +618,17 @@ export async function installWorkspacePlugin({
     syncMode: false
   });
 
-  await ensurePluginMarketplace({ targetDir, dryRun });
+  const { nextManifestEntry } = await ensurePluginMarketplace({
+    targetDir,
+    existingManifest,
+    version,
+    force,
+    dryRun,
+    syncMode: false
+  });
+  if (nextManifestEntry && !dryRun) {
+    await persistMarketplaceEntry(targetDir, version, nextManifestEntry, { installPlugin: true });
+  }
 
   return { ...result, pluginInstalled: true };
 }
@@ -488,12 +642,20 @@ export async function updateProject({
   force = false,
   dryRun = false
 }) {
-  const existingManifest = await readManifest(targetDir);
+  let existingManifest = await readManifest(targetDir);
   if (!existingManifest) {
     throw new Error("No Codex Kit manifest found. Run `codex-kit init` first.");
   }
 
   const rulesMigration = await migrateLegacyRulesPath({ targetDir, force, dryRun });
+  if (rulesMigration.migrated) {
+    existingManifest = replaceManifestFilePath(
+      existingManifest,
+      LEGACY_RULES_PATH,
+      RULES_PATH,
+      "rules"
+    );
+  }
   const includePlugin = installPlugin || hasPluginFeature(existingManifest);
   const templates = await loadManagedTemplates({
     templateRoot,
@@ -516,7 +678,17 @@ export async function updateProject({
   });
 
   if (includePlugin) {
-    await ensurePluginMarketplace({ targetDir, dryRun });
+    const { nextManifestEntry } = await ensurePluginMarketplace({
+      targetDir,
+      existingManifest,
+      version,
+      force,
+      dryRun,
+      syncMode: true
+    });
+    if (nextManifestEntry && !dryRun) {
+      await persistMarketplaceEntry(targetDir, version, nextManifestEntry, { installPlugin: includePlugin });
+    }
   }
 
   return {
@@ -550,7 +722,17 @@ export async function syncWorkspacePlugin({
     syncMode: true
   });
 
-  await ensurePluginMarketplace({ targetDir, dryRun });
+  const { nextManifestEntry } = await ensurePluginMarketplace({
+    targetDir,
+    existingManifest,
+    version,
+    force,
+    dryRun,
+    syncMode: true
+  });
+  if (nextManifestEntry && !dryRun) {
+    await persistMarketplaceEntry(targetDir, version, nextManifestEntry, { installPlugin: true });
+  }
 
   return { ...result, pluginInstalled: true };
 }
@@ -686,7 +868,11 @@ export async function statusProject({ targetDir, templateRoot, pluginRoot, versi
       missing.push(file.path);
       continue;
     }
-    if (file.installedHash && currentHash !== file.installedHash) {
+    if (
+      file.status === "unmanaged" ||
+      !file.installedHash ||
+      currentHash !== file.installedHash
+    ) {
       modified.push(file.path);
     }
     if (template && file.templateHash !== template.templateHash) {
@@ -739,7 +925,11 @@ export async function statusWorkspacePlugin({ targetDir, pluginRoot, version }) 
       missing.push(relativePath);
       continue;
     }
-    if (tracked.installedHash && currentHash !== tracked.installedHash) {
+    if (
+      tracked.status === "unmanaged" ||
+      !tracked.installedHash ||
+      currentHash !== tracked.installedHash
+    ) {
       modified.push(relativePath);
     }
     if (templateByPath.has(relativePath) && tracked.templateHash !== template.templateHash) {

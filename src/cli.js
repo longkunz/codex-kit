@@ -629,7 +629,8 @@ export async function runCli(argv) {
       targetDir: operation.path,
       scope: operation.scope,
       codexHome: operation.codexHome,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      version
     });
     if (!operation.quiet) {
       console.log(
@@ -704,7 +705,8 @@ export async function runCli(argv) {
       targetDir: operation.path,
       scope: operation.scope,
       codexHome: operation.codexHome,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      version
     });
     if (!operation.quiet) {
       console.log(

@@ -191,10 +191,10 @@ npx @daominhhiep/codex-kit install --target hooks
 The hook bundle creates:
 
 - `.codex/hooks.json`
-- `.codex/hooks/user_prompt_secret_scan.py`
-- `.codex/hooks/pre_tool_use_policy.py`
-- `.codex/hooks/post_tool_use_log.py`
-- `.codex/hooks/stop_validation.py`
+- `.codex/hooks/user_prompt_secret_scan.mjs`
+- `.codex/hooks/pre_tool_use_policy.mjs`
+- `.codex/hooks/post_tool_use_log.mjs`
+- `.codex/hooks/stop_validation.mjs`
 
 Hooks are safe by default: they run locally, do not make network calls, and do not log prompt text, file contents, or environment values. Existing hook files are not overwritten unless you pass `--force`.
 

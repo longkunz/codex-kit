@@ -1,7 +1,12 @@
 import path from "node:path";
 import { pathExists, readText, removePath, walkFiles, writeText } from "./fs.js";
 import { sha256 } from "./hash.js";
-import { readManifest, writeManifest } from "./manifest.js";
+import {
+  normalizeManifest,
+  readManifest,
+  replaceManifestFilePath,
+  writeManifest
+} from "./manifest.js";
 import { loadTemplateFiles } from "./templates.js";
 import { statusLocalMemories } from "./memories.js";
 
@@ -25,6 +30,9 @@ function inferTarget(filePath, fallback = "project") {
   if (normalized.startsWith(".codex/rules/") || normalized.startsWith("codex/rules/")) {
     return "rules";
   }
+  if (normalized === ".codex/config.toml") {
+    return "mcp";
+  }
   if (normalized.startsWith(".agents/skills/")) {
     return "skills";
   }
@@ -33,11 +41,17 @@ function inferTarget(filePath, fallback = "project") {
 
 function normalizeManifestFiles(manifest) {
   const files = Array.isArray(manifest?.files) ? manifest.files : [];
-  return files.map((file) => ({
-    ...file,
-    path: normalizePath(file.path),
-    target: file.target || inferTarget(file.path)
-  }));
+  return normalizeManifest({
+    ...(manifest || {}),
+    files: files.map((file) => ({
+      ...file,
+      path: normalizePath(file.path),
+      target:
+        normalizePath(file.path) === ".codex/config.toml"
+          ? "mcp"
+          : file.target || inferTarget(file.path)
+    }))
+  }).files;
 }
 
 function buildTargets(files) {
@@ -52,25 +66,13 @@ function buildTargets(files) {
 }
 
 function buildManifest(version, files, features = {}) {
-  const deduped = new Map();
-  for (const file of files) {
-    const normalized = {
-      ...file,
-      path: normalizePath(file.path),
-      target: file.target || inferTarget(file.path)
-    };
-    deduped.set(`${normalized.target}:${normalized.path}`, normalized);
-  }
-  const nextFiles = [...deduped.values()].sort(
-    (a, b) => a.target.localeCompare(b.target) || a.path.localeCompare(b.path)
-  );
-  return {
+  return normalizeManifest({
     version,
     managedAt: new Date().toISOString(),
     features,
-    targets: buildTargets(nextFiles),
-    files: nextFiles
-  };
+    targets: buildTargets(files),
+    files
+  });
 }
 
 function createReporter() {
@@ -137,22 +139,52 @@ async function migrateRulesIfSafe(targetDir) {
   return true;
 }
 
-async function currentFileEntry(targetDir, relativePath, templateHash = null) {
+async function currentFileEntry(targetDir, relativePath, templateHash = null, previous = null) {
   const destination = path.join(targetDir, relativePath);
   if (!(await pathExists(destination))) {
     return null;
   }
-  const installedHash = sha256(await readText(destination));
+  const currentHash = sha256(await readText(destination));
+  if (previous?.status === "unmanaged" || (previous && !previous.installedHash)) {
+    const { installedHash: _ignored, ...unmanaged } = previous;
+    return {
+      ...unmanaged,
+      status: "unmanaged",
+      observedHash: previous.observedHash || currentHash
+    };
+  }
+  if (previous?.installedHash) {
+    return previous;
+  }
+  if (templateHash && currentHash === templateHash) {
+    return {
+      path: normalizePath(relativePath),
+      target: inferTarget(relativePath),
+      status: "managed",
+      templateHash,
+      installedHash: currentHash
+    };
+  }
   return {
     path: normalizePath(relativePath),
     target: inferTarget(relativePath),
-    templateHash: templateHash || installedHash,
-    installedHash
+    status: "unmanaged",
+    templateHash,
+    observedHash: currentHash
   };
 }
 
-async function collectExistingTemplateEntries({ targetDir, templateRoot, pluginRoot, hookRoot }) {
+async function collectExistingTemplateEntries({
+  targetDir,
+  templateRoot,
+  pluginRoot,
+  hookRoot,
+  existingManifest
+}) {
   const entries = [];
+  const existingByKey = new Map(
+    normalizeManifestFiles(existingManifest).map((file) => [`${file.target}:${file.path}`, file])
+  );
   const projectTemplates = await loadTemplateFiles(templateRoot);
   const pluginTemplates = (await loadTemplateFiles(pluginRoot)).map((template) => ({
     ...template,
@@ -161,13 +193,25 @@ async function collectExistingTemplateEntries({ targetDir, templateRoot, pluginR
   const hookTemplates = await loadTemplateFiles(hookRoot);
 
   for (const template of projectTemplates.concat(pluginTemplates, hookTemplates)) {
-    const entry = await currentFileEntry(targetDir, template.relativePath, template.templateHash);
+    const relativePath = normalizePath(template.relativePath);
+    const target = inferTarget(relativePath);
+    const entry = await currentFileEntry(
+      targetDir,
+      relativePath,
+      template.templateHash,
+      existingByKey.get(`${target}:${relativePath}`)
+    );
     if (entry) {
       entries.push(entry);
     }
   }
 
-  const marketplace = await currentFileEntry(targetDir, MARKETPLACE_PATH);
+  const marketplace = await currentFileEntry(
+    targetDir,
+    MARKETPLACE_PATH,
+    null,
+    existingByKey.get(`plugin:${MARKETPLACE_PATH}`)
+  );
   if (marketplace) {
     marketplace.target = "plugin";
     entries.push(marketplace);
@@ -177,13 +221,26 @@ async function collectExistingTemplateEntries({ targetDir, templateRoot, pluginR
 }
 
 async function resyncManifest({ targetDir, templateRoot, pluginRoot, hookRoot, version }) {
-  const existing = await readManifest(targetDir);
+  let existing = await readManifest(targetDir);
+  if (
+    existing &&
+    !(await pathExists(path.join(targetDir, LEGACY_RULES_PATH))) &&
+    (await pathExists(path.join(targetDir, RULES_PATH)))
+  ) {
+    existing = replaceManifestFilePath(
+      existing,
+      LEGACY_RULES_PATH,
+      RULES_PATH,
+      "rules"
+    );
+  }
   const existingFiles = normalizeManifestFiles(existing);
   const knownEntries = await collectExistingTemplateEntries({
     targetDir,
     templateRoot,
     pluginRoot,
-    hookRoot
+    hookRoot,
+    existingManifest: existing
   });
   const byKey = new Map(existingFiles.map((file) => [`${file.target}:${file.path}`, file]));
   for (const entry of knownEntries) {
@@ -402,8 +459,13 @@ async function validatePlugin(targetDir, pluginRoot, version, reporter) {
     reporter.fail("plugin", `Marketplace codex-kit plugin path should be ./${PLUGIN_TARGET_ROOT}`, "plugin");
     return;
   }
-  if (!pluginEntry.policy || !["AVAILABLE", "INSTALLED_BY_DEFAULT"].includes(pluginEntry.policy.installation)) {
-    reporter.fail("plugin", "Marketplace plugin installation policy is invalid", "plugin");
+  // Policy must be AVAILABLE: the documented flow requires explicit `codex plugin add`
+  if (pluginEntry.policy?.installation !== "AVAILABLE") {
+    reporter.fail(
+      "plugin",
+      `Marketplace codex-kit plugin installation policy should be AVAILABLE (got: ${pluginEntry.policy?.installation ?? "missing"})`,
+      "plugin"
+    );
     return;
   }
   if (!pluginEntry.policy || !["ON_INSTALL", "ON_USE"].includes(pluginEntry.policy.authentication)) {
@@ -463,15 +525,41 @@ async function validateManifest({ targetDir, templateRoot, pluginRoot, hookRoot,
 
   const files = normalizeManifestFiles(manifest);
   const missing = [];
+  const modified = [];
+  const marketplaceModified = [];
+  const unmanaged = [];
   for (const file of files) {
-    if (!(await pathExists(path.join(targetDir, file.path)))) {
+    const destination = path.join(targetDir, file.path);
+    if (!(await pathExists(destination))) {
       missing.push(file.path);
+      continue;
+    }
+    if (file.status === "unmanaged" || !file.installedHash) {
+      unmanaged.push(file.path);
+      continue;
+    }
+    if (sha256(await readText(destination)) !== file.installedHash) {
+      // Marketplace modifications are expected user customizations; surface as warn
+      if (normalizePath(file.path) === MARKETPLACE_PATH) {
+        marketplaceModified.push(file.path);
+      } else {
+        modified.push(file.path);
+      }
     }
   }
   if (missing.length > 0) {
     reporter.fail("manifest", `${missing.length} manifest-tracked file(s) are missing`, "project");
   } else {
     reporter.ok("manifest", `${files.length} manifest-tracked file(s) exist`, "project");
+  }
+  if (modified.length > 0) {
+    reporter.fail("manifest", `${modified.length} managed file(s) are locally modified`, "project");
+  }
+  if (marketplaceModified.length > 0) {
+    reporter.warn("manifest", `Marketplace file has been locally modified; sync with --force to reset`, "plugin");
+  }
+  if (unmanaged.length > 0) {
+    reporter.warn("manifest", `${unmanaged.length} existing file(s) remain unmanaged`, "project");
   }
 
   const targets = new Set(files.map((file) => file.target));
