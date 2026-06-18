@@ -327,6 +327,53 @@ async function validateHooks(targetDir, reporter) {
   }
 }
 
+async function validatePluginHooks(pluginSourcePath) {
+  const hooksRelativePath = "hooks/hooks.json";
+  const hooksPath = path.resolve(pluginSourcePath, hooksRelativePath);
+  if (!(await pathExists(hooksPath))) {
+    return `Plugin hooks path is missing: ${hooksRelativePath}`;
+  }
+  const parsed = await safeReadJson(hooksPath);
+  if (parsed.error) {
+    return `Plugin hooks file is invalid JSON: ${hooksRelativePath}`;
+  }
+
+  for (const entries of Object.values(parsed.value.hooks || {})) {
+    for (const entry of entries || []) {
+      for (const hook of entry.hooks || []) {
+        const script = String(hook.command || "")
+          .split(/\s+/)
+          .find((part) => part.startsWith("hooks/") || part.startsWith("./hooks/"));
+        if (script) {
+          const relativeScript = script.replace(/^\.\//, "");
+          if (!(await pathExists(path.join(pluginSourcePath, relativeScript)))) {
+            return `Plugin hook command path is missing: ${relativeScript}`;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+async function validatePluginMcp(pluginSourcePath, mcpRelativePath) {
+  if (!mcpRelativePath) {
+    return "Plugin metadata does not declare mcpServers";
+  }
+  const mcpPath = path.resolve(pluginSourcePath, mcpRelativePath);
+  if (!(await pathExists(mcpPath))) {
+    return `Plugin MCP path is missing: ${mcpRelativePath}`;
+  }
+  const parsed = await safeReadJson(mcpPath);
+  if (parsed.error) {
+    return `Plugin MCP file is invalid JSON: ${mcpRelativePath}`;
+  }
+  if (!parsed.value.mcpServers || typeof parsed.value.mcpServers !== "object") {
+    return `Plugin MCP file does not contain mcpServers: ${mcpRelativePath}`;
+  }
+  return null;
+}
+
 async function validatePlugin(targetDir, pluginRoot, version, reporter) {
   const marketplacePath = path.join(targetDir, MARKETPLACE_PATH);
   if (!(await pathExists(marketplacePath))) {
@@ -343,6 +390,30 @@ async function validatePlugin(targetDir, pluginRoot, version, reporter) {
     reporter.fail("plugin", "Marketplace does not include codex-kit plugin", "plugin");
     return;
   }
+  if (typeof marketplace.value.name !== "string" || marketplace.value.name.length === 0) {
+    reporter.fail("plugin", "Marketplace name is missing", "plugin");
+    return;
+  }
+  if (pluginEntry.source?.source !== "local") {
+    reporter.fail("plugin", "Marketplace codex-kit plugin source should be local", "plugin");
+    return;
+  }
+  if (pluginEntry.source?.path !== `./${PLUGIN_TARGET_ROOT}`) {
+    reporter.fail("plugin", `Marketplace codex-kit plugin path should be ./${PLUGIN_TARGET_ROOT}`, "plugin");
+    return;
+  }
+  if (!pluginEntry.policy || !["AVAILABLE", "INSTALLED_BY_DEFAULT"].includes(pluginEntry.policy.installation)) {
+    reporter.fail("plugin", "Marketplace plugin installation policy is invalid", "plugin");
+    return;
+  }
+  if (!pluginEntry.policy || !["ON_INSTALL", "ON_USE"].includes(pluginEntry.policy.authentication)) {
+    reporter.fail("plugin", "Marketplace plugin authentication policy is invalid", "plugin");
+    return;
+  }
+  if (typeof pluginEntry.category !== "string" || pluginEntry.category.length === 0) {
+    reporter.fail("plugin", "Marketplace plugin category is missing", "plugin");
+    return;
+  }
   const pluginSourcePath = path.resolve(targetDir, pluginEntry.source?.path || "");
   const pluginJsonPath = path.join(pluginSourcePath, ".codex-plugin/plugin.json");
   if (!(await pathExists(pluginJsonPath))) {
@@ -354,12 +425,28 @@ async function validatePlugin(targetDir, pluginRoot, version, reporter) {
     reporter.fail("plugin", "Plugin metadata is invalid JSON", "plugin");
     return;
   }
-  if (pluginJson.value.version !== version) {
+  const hooksError = await validatePluginHooks(pluginSourcePath);
+  const mcpError = await validatePluginMcp(pluginSourcePath, pluginJson.value.mcpServers);
+  const packagedPluginJson = await safeReadJson(
+    path.join(pluginRoot, ".codex-plugin/plugin.json")
+  );
+
+  if (pluginJson.value.name !== "codex-kit") {
+    reporter.fail("plugin", "Plugin metadata name should be codex-kit", "plugin");
+  } else if (pluginJson.value.version !== version) {
     reporter.fail("plugin", `Plugin version ${pluginJson.value.version} does not match package ${version}`, "plugin");
-  } else if (!(await pathExists(pluginRoot))) {
-    reporter.fail("plugin", "Packaged plugin source is missing", "plugin");
+  } else if (!pluginJson.value.skills || !(await pathExists(path.resolve(pluginSourcePath, pluginJson.value.skills)))) {
+    reporter.fail("plugin", "Plugin metadata skills path is missing", "plugin");
+  } else if (hooksError) {
+    reporter.fail("plugin", hooksError, "plugin");
+  } else if (mcpError) {
+    reporter.fail("plugin", mcpError, "plugin");
+  } else if (packagedPluginJson.error) {
+    reporter.fail("plugin", "Packaged plugin metadata is missing or invalid", "plugin");
+  } else if (packagedPluginJson.value.version !== version) {
+    reporter.fail("plugin", `Packaged plugin version ${packagedPluginJson.value.version} does not match package ${version}`, "plugin");
   } else {
-    reporter.ok("plugin", "Workspace plugin metadata is valid", "plugin");
+    reporter.ok("plugin", "Workspace plugin marketplace, hooks, MCP, and metadata are valid", "plugin");
   }
 }
 

@@ -10,6 +10,8 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 ## Commands
 
 - `npx @daominhhiep/codex-kit init` or `npx @daominhhiep/codex-kit install` to initialize the scaffold in the current repository.
+- `npx @daominhhiep/codex-kit init --include-plugin` to initialize the scaffold and stage the workspace plugin marketplace.
+- `npx @daominhhiep/codex-kit init --all` to initialize the scaffold with the workspace plugin and safe project hooks. This does not enable local memories.
 - `npx @daominhhiep/codex-kit update` to refresh managed files from the shipped template.
 - `npx @daominhhiep/codex-kit install --target plugin` to install only the workspace plugin into the current project.
 - `npx @daominhhiep/codex-kit install --target mcp` to install the shipped MCP bundle into the current project's `.codex/config.toml`.
@@ -24,6 +26,7 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - `npx @daominhhiep/codex-kit list --target skills --query frontend` to search shipped skills by query.
 - `npx @daominhhiep/codex-kit list --target skills --scope local` to show which shipped skills are already installed in local Codex.
 - `npx @daominhhiep/codex-kit status` to inspect managed-file state.
+- `npx @daominhhiep/codex-kit doctor` to validate the project, plugin marketplace, bundled hooks/MCP, and manifest consistency.
 - `npx @daominhhiep/codex-kit install --target skills --scope local` to copy the shipped Codex Kit skills into local Codex.
 - `npx @daominhhiep/codex-kit sync --target skills --scope local` to overwrite local Codex skills with the shipped Codex Kit version.
 - `npx @daominhhiep/codex-kit remove --target skills --scope local --skills clean-code,planning` to remove specific Codex Kit skills from local Codex.
@@ -58,6 +61,8 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
   - install the exact skill only if the request clearly names one skill.
 - If the user asks to list installed local skills, run `npx @daominhhiep/codex-kit list --target skills --scope local`.
 - If the user asks to update both the workspace plugin and local skills, run `npx @daominhhiep/codex-kit sync-codex`.
+- If the user asks to initialize with the workspace plugin, run `npx @daominhhiep/codex-kit init --include-plugin`.
+- If the user asks for all project-scoped setup, run `npx @daominhhiep/codex-kit init --all`; do not enable memories unless separately requested.
 - If the user asks for initial full setup in the current repository, run `npx @daominhhiep/codex-kit setup-codex`.
 - If the user asks Codex Kit to auto-detect the stack and install the right skills (for example, "scan the project and install the skills I need"), run `npx @daominhhiep/codex-kit autoskills`.
 - If the user wants the same auto-detection but installed into local Codex, run `npx @daominhhiep/codex-kit autoskills --scope local`.

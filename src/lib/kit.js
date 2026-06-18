@@ -99,13 +99,26 @@ function hasPluginFeature(manifest) {
   );
 }
 
-async function loadManagedTemplates({ templateRoot, pluginRoot, includePlugin = false }) {
+function syncPluginManifestVersion(template, version) {
+  if (normalizePath(template.relativePath) !== ".codex-plugin/plugin.json") {
+    return template;
+  }
+
+  const manifest = JSON.parse(template.content);
+  manifest.version = version;
+  const content = JSON.stringify(manifest, null, 2) + "\n";
+  return { ...template, content, templateHash: sha256(content) };
+}
+
+async function loadManagedTemplates({ templateRoot, pluginRoot, version, includePlugin = false }) {
   const templates = await loadTemplateFiles(templateRoot);
   if (!includePlugin) {
     return templates;
   }
 
-  const pluginTemplates = await loadTemplateFiles(pluginRoot);
+  const pluginTemplates = (await loadTemplateFiles(pluginRoot)).map((template) =>
+    syncPluginManifestVersion(template, version)
+  );
   return templates
     .concat(
       pluginTemplates.map((template) => ({
@@ -116,8 +129,10 @@ async function loadManagedTemplates({ templateRoot, pluginRoot, includePlugin = 
     .sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
-async function loadPluginTemplates(pluginRoot) {
-  const pluginTemplates = await loadTemplateFiles(pluginRoot);
+async function loadPluginTemplates(pluginRoot, version) {
+  const pluginTemplates = (await loadTemplateFiles(pluginRoot)).map((template) =>
+    syncPluginManifestVersion(template, version)
+  );
   return pluginTemplates
     .map((template) => ({
       ...template,
@@ -407,6 +422,7 @@ export async function initProject({
   const templates = await loadManagedTemplates({
     templateRoot,
     pluginRoot,
+    version,
     includePlugin: installPlugin
   });
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
@@ -443,7 +459,7 @@ export async function installWorkspacePlugin({
   dryRun = false
 }) {
   const existingManifest = await readManifest(targetDir);
-  const templates = await loadPluginTemplates(pluginRoot);
+  const templates = await loadPluginTemplates(pluginRoot, version);
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
   const result = await writeProjectSubset({
     targetDir,
@@ -482,6 +498,7 @@ export async function updateProject({
   const templates = await loadManagedTemplates({
     templateRoot,
     pluginRoot,
+    version,
     includePlugin
   });
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
@@ -518,7 +535,7 @@ export async function syncWorkspacePlugin({
   dryRun = false
 }) {
   const existingManifest = await readManifest(targetDir);
-  const templates = await loadPluginTemplates(pluginRoot);
+  const templates = await loadPluginTemplates(pluginRoot, version);
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
   const result = await writeProjectSubset({
     targetDir,
@@ -639,6 +656,7 @@ export async function statusProject({ targetDir, templateRoot, pluginRoot, versi
   const templates = await loadManagedTemplates({
     templateRoot,
     pluginRoot,
+    version,
     includePlugin: hasPluginFeature(manifest)
   });
   const templateByPath = new Map(
@@ -688,7 +706,7 @@ export async function statusProject({ targetDir, templateRoot, pluginRoot, versi
 
 export async function statusWorkspacePlugin({ targetDir, pluginRoot, version }) {
   const manifest = await readManifest(targetDir);
-  const templates = await loadPluginTemplates(pluginRoot);
+  const templates = await loadPluginTemplates(pluginRoot, version);
   const templateByPath = new Map(
     templates.map((template) => [normalizePath(template.relativePath), template])
   );

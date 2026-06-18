@@ -1,6 +1,6 @@
 name = "security_auditor"
 description = "Security specialist for threat review, auth flows, input validation, attack surface analysis, and high-risk code paths."
-model = "gpt-5.4"
+# model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """

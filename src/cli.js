@@ -123,8 +123,10 @@ Options:
   --codex-home <dir>
                     Codex home directory for local skill installation
   --skills <list>   Comma-separated skill names for install/sync/remove
-  --install-plugin  Legacy option for \`init\` or \`update\`
+  --include-plugin  Install the workspace plugin during \`init\` or \`install --target project\`
+  --install-plugin  Legacy alias for \`--include-plugin\`
   --include-hooks   Install project hooks during \`init\` or \`install --target project\`
+  --all             Install all project-scoped optional bundles: plugin and hooks
   --enable-memories Enable local Codex memories for \`setup-codex\`
   --force           Overwrite existing or locally modified managed files
   --dry-run         Preview file operations without writing
@@ -144,7 +146,9 @@ function parseArgs(argv) {
     dryRun: false,
     quiet: false,
     installPlugin: false,
+    includePlugin: false,
     includeHooks: false,
+    all: false,
     enableMemories: false,
     json: false,
     strict: false,
@@ -165,8 +169,12 @@ function parseArgs(argv) {
       options.force = true;
     } else if (arg === "--install-plugin") {
       options.installPlugin = true;
+    } else if (arg === "--include-plugin") {
+      options.includePlugin = true;
     } else if (arg === "--include-hooks") {
       options.includeHooks = true;
+    } else if (arg === "--all") {
+      options.all = true;
     } else if (arg === "--enable-memories") {
       options.enableMemories = true;
     } else if (arg === "--dry-run") {
@@ -251,8 +259,9 @@ function buildOperation(action, options, overrides = {}) {
     force: options.force,
     dryRun: options.dryRun,
     quiet: options.quiet,
-    installPlugin: overrides.installPlugin ?? false,
-    includeHooks: overrides.includeHooks ?? options.includeHooks ?? false,
+    installPlugin: overrides.installPlugin ?? (options.installPlugin || options.includePlugin || options.all),
+    includeHooks: overrides.includeHooks ?? (options.includeHooks || options.all),
+    all: options.all,
     enableMemories: overrides.enableMemories ?? options.enableMemories ?? false,
     json: options.json,
     strict: options.strict,
@@ -274,8 +283,8 @@ function normalizeOperation(options) {
       return buildOperation("install", options, {
         target: "project",
         scope: "project",
-        installPlugin: options.installPlugin,
-        includeHooks: options.includeHooks
+        installPlugin: options.installPlugin || options.includePlugin || options.all,
+        includeHooks: options.includeHooks || options.all
       });
     case "update":
       return buildOperation("sync", options, {
@@ -531,6 +540,9 @@ export async function runCli(argv) {
           ? `Project scope: planned ${result.written.length + (hooksResult?.written.length || 0)} file writes in ${operation.path}`
           : `Project scope: installed Codex Kit scaffold into ${operation.path}`
       );
+      if (!result.pluginInstalled) {
+        console.log("Project scope: workspace plugin skipped; run `codex-kit init --include-plugin` or `codex-kit install --target plugin` to add it.");
+      }
       if (result.skipped.length > 0) {
         console.log(`Project scope: skipped ${result.skipped.length} existing files`);
       }
@@ -1105,6 +1117,9 @@ export async function runCli(argv) {
     console.log(`Project scope: version ${result.version}`);
     console.log(`Project scope: managed files ${result.managedCount}`);
     console.log(`Project scope: workspace plugin installed ${result.pluginInstalled ? "yes" : "no"}`);
+    if (!result.pluginInstalled) {
+      console.log("Project scope: next step: run `codex-kit init --include-plugin` or `codex-kit install --target plugin` to add the workspace plugin.");
+    }
     console.log(`Project scope: missing files ${result.missing.length}`);
     console.log(`Project scope: modified files ${result.modified.length}`);
     console.log(`Project scope: outdated files ${result.outdated.length}`);

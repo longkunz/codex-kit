@@ -1,6 +1,6 @@
 name = "devops_engineer"
 description = "DevOps specialist for CI, deployment, environments, build pipelines, and production operations."
-model = "gpt-5.4"
+# model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
