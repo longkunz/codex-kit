@@ -1,5 +1,13 @@
 import path from "node:path";
 import { pathExists, readText, writeText } from "./fs.js";
+import { sha256 } from "./hash.js";
+import {
+  MCP_CONFIG_PATH,
+  normalizeManifest,
+  readManifest,
+  upsertManifestFile,
+  writeManifest
+} from "./manifest.js";
 
 const CONTEXT7_TABLE = "[mcp_servers.context7]";
 const CONTEXT7_BLOCK = `[mcp_servers.context7]
@@ -88,22 +96,73 @@ async function writeManagedMcpConfig({ configPath, dryRun = false }) {
   };
 }
 
-export async function installManagedMcp({ targetDir, scope = "project", codexHome, dryRun = false }) {
-  const configPath =
-    scope === "local"
-      ? path.join(codexHome, "config.toml")
-      : path.join(targetDir, ".codex/config.toml");
+async function writeProjectMcpConfig({ targetDir, dryRun, version }) {
+  const configPath = path.join(targetDir, MCP_CONFIG_PATH);
+  const manifest = normalizeManifest((await readManifest(targetDir)) || { files: [] });
+  const previous = manifest.files.find((file) => file.path === MCP_CONFIG_PATH);
+  const existed = await pathExists(configPath);
+  const beforeHash = existed ? sha256(await readText(configPath)) : null;
+  const result = await writeManagedMcpConfig({ configPath, dryRun });
 
-  return writeManagedMcpConfig({ configPath, dryRun });
+  if (!dryRun) {
+    const currentHash = sha256(await readText(configPath));
+    let entry;
+    if (!existed || (previous?.installedHash && beforeHash === previous.installedHash)) {
+      entry = {
+        path: MCP_CONFIG_PATH,
+        target: "mcp",
+        status: "managed",
+        templateHash: previous?.templateHash || currentHash,
+        installedHash: currentHash
+      };
+    } else if (previous) {
+      entry = { ...previous, path: MCP_CONFIG_PATH, target: "mcp" };
+    } else {
+      entry = {
+        path: MCP_CONFIG_PATH,
+        target: "mcp",
+        status: "unmanaged",
+        observedHash: beforeHash
+      };
+    }
+    await writeManifest(targetDir, upsertManifestFile(manifest, entry, version));
+  }
+
+  return result;
 }
 
-export async function syncManagedMcp({ targetDir, scope = "project", codexHome, dryRun = false }) {
+export async function installManagedMcp({
+  targetDir,
+  scope = "project",
+  codexHome,
+  dryRun = false,
+  version
+}) {
   const configPath =
     scope === "local"
       ? path.join(codexHome, "config.toml")
       : path.join(targetDir, ".codex/config.toml");
 
-  return writeManagedMcpConfig({ configPath, dryRun });
+  return scope === "local"
+    ? writeManagedMcpConfig({ configPath, dryRun })
+    : writeProjectMcpConfig({ targetDir, dryRun, version });
+}
+
+export async function syncManagedMcp({
+  targetDir,
+  scope = "project",
+  codexHome,
+  dryRun = false,
+  version
+}) {
+  const configPath =
+    scope === "local"
+      ? path.join(codexHome, "config.toml")
+      : path.join(targetDir, ".codex/config.toml");
+
+  return scope === "local"
+    ? writeManagedMcpConfig({ configPath, dryRun })
+    : writeProjectMcpConfig({ targetDir, dryRun, version });
 }
 
 export async function statusManagedMcp({ targetDir, scope = "project", codexHome }) {

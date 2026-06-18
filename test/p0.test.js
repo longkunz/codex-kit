@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,10 +9,12 @@ import {
   initProject,
   installProjectHooks,
   installWorkspacePlugin,
+  statusProject,
   statusWorkspacePlugin,
   updateProject
 } from "../src/lib/kit.js";
 import { readManifest } from "../src/lib/manifest.js";
+import { installManagedMcp } from "../src/lib/mcp.js";
 import {
   installLocalMemories,
   statusLocalMemories
@@ -33,6 +35,27 @@ async function withTempProject(fn) {
   } finally {
     await rm(targetDir, { recursive: true, force: true });
   }
+}
+
+async function moveRulesBackToLegacy(targetDir, edit = null) {
+  const rulesPath = path.join(targetDir, ".codex/rules/default.rules");
+  const legacyPath = path.join(targetDir, "codex/rules/default.rules");
+  await mkdir(path.dirname(legacyPath), { recursive: true });
+  await rename(rulesPath, legacyPath);
+  if (edit !== null) {
+    await writeFile(legacyPath, edit, "utf8");
+  }
+
+  const manifest = await readManifest(targetDir);
+  const entry = manifest.files.find((file) => file.path === ".codex/rules/default.rules");
+  entry.path = "codex/rules/default.rules";
+  manifest.targets.rules.files = ["codex/rules/default.rules"];
+  await writeFile(
+    path.join(targetDir, ".codex-kit/manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8"
+  );
+  return entry;
 }
 
 test("init creates rules in .codex/rules and tracks targets", async () => {
@@ -324,5 +347,217 @@ test("sync --force overwrites edits and establishes a clean managed baseline", a
     const entry = manifest.files.find((file) => file.path === "AGENTS.md");
     assert.equal(entry.status, "managed");
     assert.equal(entry.installedHash, entry.templateHash);
+  });
+});
+
+test("ordinary init and MCP install followed by init keep one clean config entry", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    let manifest = await readManifest(targetDir);
+    let configEntries = manifest.files.filter(
+      (file) => file.path === ".codex/config.toml"
+    );
+    assert.equal(configEntries.length, 1);
+    assert.equal(configEntries[0].target, "mcp");
+
+    let status = await statusProject({ targetDir, templateRoot, pluginRoot, version });
+    assert.deepEqual(status.missing, []);
+    assert.deepEqual(status.modified, []);
+    let doctor = await runDoctor({
+      targetDir,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: path.join(targetDir, "codex-home"),
+      version
+    });
+    assert.equal(doctor.summary.fail, 0);
+
+    await installManagedMcp({ targetDir, version });
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    manifest = await readManifest(targetDir);
+    configEntries = manifest.files.filter((file) => file.path === ".codex/config.toml");
+    assert.equal(configEntries.length, 1);
+    assert.equal(configEntries[0].target, "mcp");
+    assert.equal(manifest.targets.project?.files.includes(".codex/config.toml") || false, false);
+    assert.deepEqual(manifest.targets.mcp.files, [".codex/config.toml"]);
+
+    status = await statusProject({ targetDir, templateRoot, pluginRoot, version });
+    assert.deepEqual(status.missing, []);
+    assert.deepEqual(status.modified, []);
+    doctor = await runDoctor({
+      targetDir,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: path.join(targetDir, "codex-home"),
+      version
+    });
+    assert.equal(doctor.summary.fail, 0);
+  });
+});
+
+test("repeated project MCP install is idempotent", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await installManagedMcp({ targetDir, version });
+    const firstContent = await readFile(path.join(targetDir, ".codex/config.toml"), "utf8");
+    const firstManifest = await readManifest(targetDir);
+    const firstEntry = firstManifest.files.find(
+      (file) => file.path === ".codex/config.toml"
+    );
+
+    const second = await installManagedMcp({ targetDir, version });
+    const secondManifest = await readManifest(targetDir);
+    const secondEntries = secondManifest.files.filter(
+      (file) => file.path === ".codex/config.toml"
+    );
+
+    assert.equal(second.changed, false);
+    assert.equal(
+      await readFile(path.join(targetDir, ".codex/config.toml"), "utf8"),
+      firstContent
+    );
+    assert.equal(secondEntries.length, 1);
+    assert.deepEqual(secondEntries[0], firstEntry);
+  });
+});
+
+test("MCP install preserves a modified config baseline", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const before = await readManifest(targetDir);
+    const beforeEntry = before.files.find((file) => file.path === ".codex/config.toml");
+    const configPath = path.join(targetDir, ".codex/config.toml");
+    await writeFile(configPath, `${await readFile(configPath, "utf8")}\n# user edit\n`, "utf8");
+
+    await installManagedMcp({ targetDir, version });
+
+    const after = await readManifest(targetDir);
+    const entries = after.files.filter((file) => file.path === ".codex/config.toml");
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].installedHash, beforeEntry.installedHash);
+    assert.equal(entries[0].templateHash, beforeEntry.templateHash);
+    const status = await statusProject({ targetDir, templateRoot, pluginRoot, version });
+    assert.ok(status.modified.includes(".codex/config.toml"));
+  });
+});
+
+test("MCP install does not adopt a pre-existing unmanaged config", async () => {
+  await withTempProject(async (targetDir) => {
+    const configPath = path.join(targetDir, ".codex/config.toml");
+    await mkdir(path.dirname(configPath), { recursive: true });
+    await writeFile(configPath, "# user-owned config\n", "utf8");
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    await installManagedMcp({ targetDir, version });
+
+    const manifest = await readManifest(targetDir);
+    const entries = manifest.files.filter((file) => file.path === ".codex/config.toml");
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].target, "mcp");
+    assert.equal(entries[0].status, "unmanaged");
+    assert.equal(Object.hasOwn(entries[0], "installedHash"), false);
+  });
+});
+
+test("local MCP install does not update the project manifest", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const before = await readFile(path.join(targetDir, ".codex-kit/manifest.json"), "utf8");
+
+    await installManagedMcp({
+      targetDir,
+      scope: "local",
+      codexHome: path.join(targetDir, "codex-home"),
+      version
+    });
+
+    assert.equal(
+      await readFile(path.join(targetDir, ".codex-kit/manifest.json"), "utf8"),
+      before
+    );
+  });
+});
+
+test("init translates a managed legacy rules manifest entry", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const legacyEntry = await moveRulesBackToLegacy(targetDir);
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const manifest = await readManifest(targetDir);
+    assert.equal(
+      manifest.files.some((file) => file.path === "codex/rules/default.rules"),
+      false
+    );
+    const migrated = manifest.files.find(
+      (file) => file.path === ".codex/rules/default.rules"
+    );
+    assert.equal(migrated.target, "rules");
+    assert.equal(migrated.status, legacyEntry.status);
+    assert.equal(migrated.templateHash, legacyEntry.templateHash);
+    assert.equal(migrated.installedHash, legacyEntry.installedHash);
+    const status = await statusProject({ targetDir, templateRoot, pluginRoot, version });
+    assert.equal(status.missing.includes("codex/rules/default.rules"), false);
+    assert.equal(status.modified.includes(".codex/rules/default.rules"), false);
+  });
+});
+
+test("edited migrated rules remain modified without rebaselining", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const legacyEntry = await moveRulesBackToLegacy(targetDir, "# edited legacy rules\n");
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const manifest = await readManifest(targetDir);
+    const migrated = manifest.files.find(
+      (file) => file.path === ".codex/rules/default.rules"
+    );
+    assert.equal(migrated.installedHash, legacyEntry.installedHash);
+    assert.equal(migrated.templateHash, legacyEntry.templateHash);
+    const status = await statusProject({ targetDir, templateRoot, pluginRoot, version });
+    assert.ok(status.modified.includes(".codex/rules/default.rules"));
+  });
+});
+
+test("doctor --fix translates legacy rules without rebaselining edits", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const legacyEntry = await moveRulesBackToLegacy(targetDir, "# doctor-preserved edit\n");
+
+    const result = await runDoctor({
+      targetDir,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: path.join(targetDir, "codex-home"),
+      version,
+      fix: true
+    });
+
+    const manifest = await readManifest(targetDir);
+    assert.equal(
+      manifest.files.some((file) => file.path === "codex/rules/default.rules"),
+      false
+    );
+    const migrated = manifest.files.find(
+      (file) => file.path === ".codex/rules/default.rules"
+    );
+    assert.equal(migrated.installedHash, legacyEntry.installedHash);
+    assert.equal(migrated.templateHash, legacyEntry.templateHash);
+    assert.equal(
+      await readFile(path.join(targetDir, ".codex/rules/default.rules"), "utf8"),
+      "# doctor-preserved edit\n"
+    );
+    assert.ok(
+      result.checks.some(
+        (check) => check.status === "fail" && check.message.includes("locally modified")
+      )
+    );
   });
 });

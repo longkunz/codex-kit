@@ -1,7 +1,12 @@
 import path from "node:path";
 import { pathExists, readText, removePath, walkFiles, writeText } from "./fs.js";
 import { sha256 } from "./hash.js";
-import { readManifest, writeManifest } from "./manifest.js";
+import {
+  normalizeManifest,
+  readManifest,
+  replaceManifestFilePath,
+  writeManifest
+} from "./manifest.js";
 import { loadTemplateFiles } from "./templates.js";
 import { statusLocalMemories } from "./memories.js";
 
@@ -25,6 +30,9 @@ function inferTarget(filePath, fallback = "project") {
   if (normalized.startsWith(".codex/rules/") || normalized.startsWith("codex/rules/")) {
     return "rules";
   }
+  if (normalized === ".codex/config.toml") {
+    return "mcp";
+  }
   if (normalized.startsWith(".agents/skills/")) {
     return "skills";
   }
@@ -33,11 +41,17 @@ function inferTarget(filePath, fallback = "project") {
 
 function normalizeManifestFiles(manifest) {
   const files = Array.isArray(manifest?.files) ? manifest.files : [];
-  return files.map((file) => ({
-    ...file,
-    path: normalizePath(file.path),
-    target: file.target || inferTarget(file.path)
-  }));
+  return normalizeManifest({
+    ...(manifest || {}),
+    files: files.map((file) => ({
+      ...file,
+      path: normalizePath(file.path),
+      target:
+        normalizePath(file.path) === ".codex/config.toml"
+          ? "mcp"
+          : file.target || inferTarget(file.path)
+    }))
+  }).files;
 }
 
 function buildTargets(files) {
@@ -52,25 +66,13 @@ function buildTargets(files) {
 }
 
 function buildManifest(version, files, features = {}) {
-  const deduped = new Map();
-  for (const file of files) {
-    const normalized = {
-      ...file,
-      path: normalizePath(file.path),
-      target: file.target || inferTarget(file.path)
-    };
-    deduped.set(`${normalized.target}:${normalized.path}`, normalized);
-  }
-  const nextFiles = [...deduped.values()].sort(
-    (a, b) => a.target.localeCompare(b.target) || a.path.localeCompare(b.path)
-  );
-  return {
+  return normalizeManifest({
     version,
     managedAt: new Date().toISOString(),
     features,
-    targets: buildTargets(nextFiles),
-    files: nextFiles
-  };
+    targets: buildTargets(files),
+    files
+  });
 }
 
 function createReporter() {
@@ -219,7 +221,19 @@ async function collectExistingTemplateEntries({
 }
 
 async function resyncManifest({ targetDir, templateRoot, pluginRoot, hookRoot, version }) {
-  const existing = await readManifest(targetDir);
+  let existing = await readManifest(targetDir);
+  if (
+    existing &&
+    !(await pathExists(path.join(targetDir, LEGACY_RULES_PATH))) &&
+    (await pathExists(path.join(targetDir, RULES_PATH)))
+  ) {
+    existing = replaceManifestFilePath(
+      existing,
+      LEGACY_RULES_PATH,
+      RULES_PATH,
+      "rules"
+    );
+  }
   const existingFiles = normalizeManifestFiles(existing);
   const knownEntries = await collectExistingTemplateEntries({
     targetDir,

@@ -1,7 +1,12 @@
 import path from "node:path";
 import { pathExists, readText, removePath, writeText } from "./fs.js";
 import { sha256 } from "./hash.js";
-import { MANIFEST_PATH, readManifest, writeManifest } from "./manifest.js";
+import {
+  MANIFEST_PATH,
+  readManifest,
+  replaceManifestFilePath,
+  writeManifest
+} from "./manifest.js";
 import {
   getInstalledShippedSkills,
   getSelectedShippedSkills,
@@ -30,7 +35,7 @@ function inferManifestTarget(filePath, fallback = "project") {
     return "rules";
   }
   if (normalized === ".codex/config.toml") {
-    return fallback;
+    return "mcp";
   }
   if (normalized.startsWith(`${PROJECT_SKILLS_TARGET_ROOT}/`)) {
     return "skills";
@@ -43,7 +48,10 @@ function normalizeManifestFiles(manifest) {
   const normalized = files.map((file) => ({
     ...file,
     path: normalizePath(file.path),
-    target: file.target || inferManifestTarget(file.path)
+    target:
+      normalizePath(file.path) === ".codex/config.toml"
+        ? "mcp"
+        : file.target || inferManifestTarget(file.path)
   }));
   const byKey = new Map();
   for (const file of normalized) {
@@ -426,8 +434,16 @@ export async function initProject({
   force = false,
   dryRun = false
 }) {
-  const existingManifest = await readManifest(targetDir);
+  let existingManifest = await readManifest(targetDir);
   const rulesMigration = await migrateLegacyRulesPath({ targetDir, force, dryRun });
+  if (rulesMigration.migrated) {
+    existingManifest = replaceManifestFilePath(
+      existingManifest,
+      LEGACY_RULES_PATH,
+      RULES_PATH,
+      "rules"
+    );
+  }
   const templates = await loadManagedTemplates({
     templateRoot,
     pluginRoot,
@@ -497,12 +513,20 @@ export async function updateProject({
   force = false,
   dryRun = false
 }) {
-  const existingManifest = await readManifest(targetDir);
+  let existingManifest = await readManifest(targetDir);
   if (!existingManifest) {
     throw new Error("No Codex Kit manifest found. Run `codex-kit init` first.");
   }
 
   const rulesMigration = await migrateLegacyRulesPath({ targetDir, force, dryRun });
+  if (rulesMigration.migrated) {
+    existingManifest = replaceManifestFilePath(
+      existingManifest,
+      LEGACY_RULES_PATH,
+      RULES_PATH,
+      "rules"
+    );
+  }
   const includePlugin = installPlugin || hasPluginFeature(existingManifest);
   const templates = await loadManagedTemplates({
     templateRoot,
