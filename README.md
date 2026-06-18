@@ -40,7 +40,8 @@ npx @daominhhiep/codex-kit init --path ./my-project
 - 16 focused subagents in `.codex/agents`
 - shared UI/UX data and scripts in `.agents/.shared`
 - project-scoped Codex config in `.codex/config.toml`
-- optional Codex execution rules in `codex/rules/default.rules`
+- Codex execution rules in `.codex/rules/default.rules`
+- optional project hooks in `.codex/hooks.json` and `.codex/hooks/`
 - managed-file tracking in `.codex-kit/manifest.json`
 
 ## CLI
@@ -54,11 +55,14 @@ codex-kit install --target plugin
 codex-kit install --target mcp
 codex-kit install --target skills
 codex-kit install --target skills --scope local
+codex-kit install --target hooks
+codex-kit install --target memories --scope local
 codex-kit update
 codex-kit sync --target mcp
 codex-kit sync --target plugin
 codex-kit sync --target skills
 codex-kit sync --target skills --scope local
+codex-kit sync --target hooks
 codex-kit list --target skills
 codex-kit list --target skills --query frontend
 codex-kit list --target skills --scope local
@@ -69,8 +73,12 @@ codex-kit autoskills
 codex-kit autoskills --scope local
 codex-kit autoskills --dry-run
 codex-kit setup-codex
+codex-kit setup-codex --enable-memories
 codex-kit sync-codex
 codex-kit status
+codex-kit doctor
+codex-kit doctor --json
+codex-kit doctor --fix
 ```
 
 Common examples:
@@ -81,6 +89,9 @@ codex-kit install --path ./my-project
 codex-kit install --target plugin
 codex-kit install --target mcp
 codex-kit install --target skills
+codex-kit install --target hooks
+codex-kit install --target memories --scope local
+codex-kit doctor
 
 codex-kit list --target skills
 codex-kit list --target skills --query frontend
@@ -93,6 +104,7 @@ codex-kit sync --target skills --scope local --skills clean-code,planning
 codex-kit remove --target skills --scope local --skills clean-code,planning
 
 codex-kit setup-codex
+codex-kit setup-codex --enable-memories
 codex-kit sync-codex
 ```
 
@@ -120,9 +132,11 @@ Codex Kit ships with a local Codex plugin scaffold:
 There are two different installation scopes:
 
 - project-local: `init` or plain `install` installs the scaffold, while `install --target plugin` or `install --target skills` add only those parts into the current repository
+- project-local hooks: `install --target hooks` writes `.codex/hooks.json` and safe local hook scripts
 - project-local MCP: `install --target mcp` writes the shipped MCP bundle into `.codex/config.toml`
 - user-local: the shipped skill catalog is installed into `${CODEX_HOME:-~/.codex}/skills`
 - user-local MCP: `install --target mcp --scope local` writes the shipped MCP bundle into `${CODEX_HOME:-~/.codex}/config.toml`
+- user-local memories: `install --target memories --scope local` updates only `${CODEX_HOME:-~/.codex}/config.toml`
 
 To scaffold a project:
 
@@ -143,6 +157,22 @@ To install only the shipped project skills into the current project:
 npx @daominhhiep/codex-kit install --target skills
 ```
 
+To install the optional safe hook bundle into the current project:
+
+```bash
+npx @daominhhiep/codex-kit install --target hooks
+```
+
+The hook bundle creates:
+
+- `.codex/hooks.json`
+- `.codex/hooks/user_prompt_secret_scan.py`
+- `.codex/hooks/pre_tool_use_policy.py`
+- `.codex/hooks/post_tool_use_log.py`
+- `.codex/hooks/stop_validation.py`
+
+Hooks are safe by default: they run locally, do not make network calls, and do not log prompt text, file contents, or environment values. Existing hook files are not overwritten unless you pass `--force`.
+
 To install the shipped MCP bundle into the project or local Codex config:
 
 ```bash
@@ -160,6 +190,27 @@ To do the full local setup in one go for the current repository:
 ```bash
 npx @daominhhiep/codex-kit setup-codex
 ```
+
+Memories are opt-in and user-local only. To enable them:
+
+```bash
+npx @daominhhiep/codex-kit install --target memories --scope local
+npx @daominhhiep/codex-kit setup-codex --enable-memories
+```
+
+This writes only to `${CODEX_HOME:-~/.codex}/config.toml`:
+
+```toml
+[features]
+memories = true
+
+[memories]
+use_memories = true
+generate_memories = true
+disable_on_external_context = true
+```
+
+Project scaffolds never enable memories by default and never write personal memory content.
 
 After upgrading Codex Kit, sync both the workspace plugin and local shipped skills:
 
@@ -205,7 +256,9 @@ The bundled plugin can also help map natural requests such as "cài skill fronte
 
 ## Codex Rules
 
-Codex Kit now ships a minimal execution policy template at `codex/rules/default.rules`.
+Codex Kit ships a minimal execution policy template at `.codex/rules/default.rules`.
+
+Older projects that still have `codex/rules/default.rules` are migrated during `init` when it is safe. If both paths exist, Codex Kit leaves the user files alone and prints a warning.
 
 It is intentionally narrow:
 
@@ -213,7 +266,19 @@ It is intentionally narrow:
 - prompts before `git push`
 - prompts before Codex Kit writes into local Codex with `--scope local`
 
-It does not replace `AGENTS.md`, skills, or workflows. Those files still handle behavior and routing; `codex/rules/default.rules` is only for sandbox approval policy.
+It does not replace `AGENTS.md`, skills, or workflows. Those files still handle behavior and routing; `.codex/rules/default.rules` is only for sandbox approval policy.
+
+## Doctor
+
+Use `doctor` to validate a generated workspace:
+
+```bash
+npx @daominhhiep/codex-kit doctor
+npx @daominhhiep/codex-kit doctor --json
+npx @daominhhiep/codex-kit doctor --fix
+```
+
+Doctor validates `AGENTS.md`, skills, subagents, `.codex/config.toml`, rules, hooks, plugin metadata, manifest consistency, and local memory status. Warnings do not fail by default; `--strict` treats warnings as failures. `--fix` performs safe repairs such as legacy rules-path migration and manifest resync for generated files that already exist on disk.
 
 ## Requirements
 

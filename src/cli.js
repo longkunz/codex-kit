@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   initProject,
+  installProjectHooks,
   installLocalSkills,
   installProjectSkills,
   installWorkspacePlugin,
@@ -11,6 +12,7 @@ import {
   removeLocalSkills,
   statusProject,
   statusWorkspacePlugin,
+  syncProjectHooks,
   syncLocalSkills,
   syncProjectSkills,
   syncWorkspacePlugin,
@@ -26,7 +28,12 @@ import {
   statusManagedMcp,
   syncManagedMcp
 } from "./lib/mcp.js";
+import {
+  installLocalMemories,
+  statusLocalMemories
+} from "./lib/memories.js";
 import { runAutoskills } from "./lib/autoskills.js";
+import { runDoctor } from "./lib/doctor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageJsonPath = path.resolve(__dirname, "../package.json");
@@ -49,6 +56,8 @@ Primary commands:
             Install shipped Codex Kit skills into local Codex
   install --target mcp --scope local
             Install the shipped MCP bundle into \`\${CODEX_HOME}/config.toml\`
+  install --target memories --scope local
+            Enable Codex memories in local Codex config only
   update
             Refresh scaffold-managed files in the target project
   sync --target plugin
@@ -75,6 +84,8 @@ Primary commands:
 Dedicated mixed-scope commands:
   setup-codex
             Scaffold the workspace plugin and install shipped skills locally
+  setup-codex --enable-memories
+            Also enable local Codex memories after showing opt-in intent
   sync-codex
             Sync the workspace plugin and local shipped skills after upgrading Codex Kit
   autoskills
@@ -85,6 +96,14 @@ Dedicated mixed-scope commands:
             Preview the detected stack and matching skills without writing files
   status
             Show scaffold-managed file status for the target project
+  doctor
+            Validate Codex Kit project health
+  doctor --json
+            Print machine-readable validation results
+  doctor --fix
+            Safely repair rules-path and manifest tracking issues
+  doctor --hooks
+            Show hook-related doctor checks
 
 Legacy aliases:
   sync --target project
@@ -97,7 +116,7 @@ Legacy aliases:
   remove-skills
 
 Options:
-  --target <name>   Command target: project, plugin, mcp, or skills
+  --target <name>   Command target: project, plugin, mcp, skills, hooks, or memories
   --scope <name>    Scope: project (default) or local
   --query <text>    Search query for \`list --target skills\`
   --path <dir>      Target directory (default: current working directory)
@@ -105,8 +124,13 @@ Options:
                     Codex home directory for local skill installation
   --skills <list>   Comma-separated skill names for install/sync/remove
   --install-plugin  Legacy option for \`init\` or \`update\`
+  --include-hooks   Install project hooks during \`init\` or \`install --target project\`
+  --enable-memories Enable local Codex memories for \`setup-codex\`
   --force           Overwrite existing or locally modified managed files
   --dry-run         Preview file operations without writing
+  --json            Print JSON output where supported
+  --strict          Treat warnings as failures for \`doctor\`
+  --fix             Apply safe repairs for \`doctor\`
   --quiet           Suppress non-essential output
   -h, --help        Show this help
 `);
@@ -120,6 +144,12 @@ function parseArgs(argv) {
     dryRun: false,
     quiet: false,
     installPlugin: false,
+    includeHooks: false,
+    enableMemories: false,
+    json: false,
+    strict: false,
+    fix: false,
+    doctorSections: [],
     codexHome: process.env.CODEX_HOME || path.join(os.homedir(), ".codex"),
     skills: [],
     positionals: [],
@@ -135,8 +165,20 @@ function parseArgs(argv) {
       options.force = true;
     } else if (arg === "--install-plugin") {
       options.installPlugin = true;
+    } else if (arg === "--include-hooks") {
+      options.includeHooks = true;
+    } else if (arg === "--enable-memories") {
+      options.enableMemories = true;
     } else if (arg === "--dry-run") {
       options.dryRun = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    } else if (arg === "--strict") {
+      options.strict = true;
+    } else if (arg === "--fix") {
+      options.fix = true;
+    } else if (["--hooks", "--plugin", "--memories"].includes(arg)) {
+      options.doctorSections.push(arg.slice(2));
     } else if (arg === "--quiet") {
       options.quiet = true;
     } else if (arg === "--skills") {
@@ -210,6 +252,12 @@ function buildOperation(action, options, overrides = {}) {
     dryRun: options.dryRun,
     quiet: options.quiet,
     installPlugin: overrides.installPlugin ?? false,
+    includeHooks: overrides.includeHooks ?? options.includeHooks ?? false,
+    enableMemories: overrides.enableMemories ?? options.enableMemories ?? false,
+    json: options.json,
+    strict: options.strict,
+    fix: options.fix,
+    doctorSections: options.doctorSections,
     positionals: options.positionals
   };
 }
@@ -226,7 +274,8 @@ function normalizeOperation(options) {
       return buildOperation("install", options, {
         target: "project",
         scope: "project",
-        installPlugin: options.installPlugin
+        installPlugin: options.installPlugin,
+        includeHooks: options.includeHooks
       });
     case "update":
       return buildOperation("sync", options, {
@@ -265,6 +314,8 @@ function normalizeOperation(options) {
       });
     case "status":
       return buildOperation("status", options);
+    case "doctor":
+      return buildOperation("doctor", options);
     default:
       throw new Error(`Unknown command: ${options.command}`);
   }
@@ -273,7 +324,7 @@ function normalizeOperation(options) {
 function validateOperation(operation) {
   const normalizedTarget = operation.target?.trim();
   const normalizedScope = operation.scope?.trim() || "project";
-  const validTargets = new Set(["project", "plugin", "mcp", "skills"]);
+  const validTargets = new Set(["project", "plugin", "mcp", "skills", "hooks", "memories"]);
   const validScopes = new Set(["project", "local"]);
 
   operation.target = normalizedTarget;
@@ -281,7 +332,7 @@ function validateOperation(operation) {
 
   if (["install", "sync", "list", "remove"].includes(operation.action)) {
     if (!operation.target || !validTargets.has(operation.target)) {
-      throw new Error("`--target` must be one of: project, plugin, skills.");
+      throw new Error("`--target` must be one of: project, plugin, mcp, skills, hooks, memories.");
     }
     if (!validScopes.has(operation.scope)) {
       throw new Error("`--scope` must be either `project` or `local`.");
@@ -320,6 +371,22 @@ function validateOperation(operation) {
 
   if ((operation.target === "plugin" || operation.target === "project") && operation.scope !== "project") {
     throw new Error(`\`${operation.target}\` only supports \`--scope project\`.`);
+  }
+
+  if (operation.target === "hooks" && operation.scope !== "project") {
+    throw new Error("`hooks` only supports `--scope project`.");
+  }
+
+  if (operation.target === "hooks" && !["install", "sync"].includes(operation.action)) {
+    throw new Error("`hooks` currently supports only `install` and `sync`.");
+  }
+
+  if (operation.target === "memories" && operation.scope !== "local") {
+    throw new Error("`memories` only supports `--scope local`.");
+  }
+
+  if (operation.target === "memories" && !["install", "list"].includes(operation.action)) {
+    throw new Error("`memories` currently supports only `install --scope local` and `list --scope local`.");
   }
 
   if (operation.target === "project" && operation.query) {
@@ -388,10 +455,55 @@ export async function runCli(argv) {
   const version = await getPackageVersion();
   const templateRoot = path.resolve(__dirname, "../templates/project");
   const skillsRoot = path.resolve(templateRoot, ".agents/skills");
+  const hookRoot = path.resolve(__dirname, "../templates/hooks");
   const pluginRoot = path.resolve(__dirname, "../plugins/codex-kit");
   const localInstallCommand = "codex-kit install --target skills --scope local --skills";
 
   await mkdir(operation.path, { recursive: true });
+
+  if (operation.action === "doctor") {
+    const result = await runDoctor({
+      targetDir: operation.path,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: operation.codexHome,
+      version,
+      fix: operation.fix
+    });
+    if (operation.doctorSections.length > 0) {
+      const sections = new Set(operation.doctorSections);
+      result.checks = result.checks.filter(
+        (check) => sections.has(check.target) || sections.has(check.name)
+      );
+      result.summary = {
+        ok: result.checks.filter((check) => check.status === "ok").length,
+        warn: result.checks.filter((check) => check.status === "warn").length,
+        fail: result.checks.filter((check) => check.status === "fail").length
+      };
+    }
+
+    const hasFailure = result.summary.fail > 0 || (operation.strict && result.summary.warn > 0);
+    process.exitCode = hasFailure ? 1 : 0;
+
+    if (operation.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    console.log("Codex Kit Doctor");
+    console.log("");
+    for (const check of result.checks) {
+      const label = check.status === "ok" ? "OK" : check.status === "warn" ? "WARN" : "FAIL";
+      console.log(`[${label}] ${check.message}`);
+    }
+    console.log("");
+    console.log(`Summary: ${result.summary.ok} ok, ${result.summary.warn} warn, ${result.summary.fail} fail`);
+    if (result.summary.fail > 0) {
+      console.log("Run `codex-kit doctor --fix` to apply safe repairs where possible.");
+    }
+    return;
+  }
 
   if (operation.action === "install" && operation.target === "project") {
     const result = await initProject({
@@ -403,14 +515,37 @@ export async function runCli(argv) {
       force: operation.force,
       dryRun: operation.dryRun
     });
+    let hooksResult = null;
+    if (operation.includeHooks) {
+      hooksResult = await installProjectHooks({
+        targetDir: operation.path,
+        hookRoot,
+        version,
+        force: operation.force,
+        dryRun: operation.dryRun
+      });
+    }
     if (!operation.quiet) {
       console.log(
         operation.dryRun
-          ? `Project scope: planned ${result.written.length} file writes in ${operation.path}`
+          ? `Project scope: planned ${result.written.length + (hooksResult?.written.length || 0)} file writes in ${operation.path}`
           : `Project scope: installed Codex Kit scaffold into ${operation.path}`
       );
       if (result.skipped.length > 0) {
         console.log(`Project scope: skipped ${result.skipped.length} existing files`);
+      }
+      if (hooksResult?.skipped.length > 0) {
+        console.log(`Project scope: skipped ${hooksResult.skipped.length} existing hook files`);
+      }
+      for (const warning of result.warnings || []) {
+        console.log(`Project scope: warning: ${warning}`);
+      }
+      if (hooksResult) {
+        console.log(
+          operation.dryRun
+            ? "Project scope: planned Codex hooks install"
+            : "Project scope: installed Codex hooks"
+        );
       }
       if (result.pluginInstalled) {
         console.log(
@@ -441,6 +576,9 @@ export async function runCli(argv) {
       );
       if (result.skipped.length > 0) {
         console.log(`Project scope: skipped ${result.skipped.length} locally modified files`);
+      }
+      for (const warning of result.warnings || []) {
+        console.log(`Project scope: warning: ${warning}`);
       }
       if (result.pluginInstalled) {
         console.log(
@@ -491,6 +629,43 @@ export async function runCli(argv) {
     return;
   }
 
+  if (operation.action === "install" && operation.target === "memories") {
+    const result = await installLocalMemories({
+      codexHome: operation.codexHome,
+      dryRun: operation.dryRun
+    });
+    if (!operation.quiet) {
+      console.log(
+        operation.dryRun
+          ? `Local scope: planned memories config update in ${result.configPath}`
+          : `Local scope: enabled Codex memories in ${result.configPath}`
+      );
+      console.log("Local scope: memories are opt-in, user-local, and no project memory content was written.");
+    }
+    return;
+  }
+
+  if (operation.action === "install" && operation.target === "hooks") {
+    const result = await installProjectHooks({
+      targetDir: operation.path,
+      hookRoot,
+      version,
+      force: operation.force,
+      dryRun: operation.dryRun
+    });
+    if (!operation.quiet) {
+      console.log(
+        operation.dryRun
+          ? `Project scope: planned ${result.written.length} hook file writes in ${operation.path}`
+          : `Project scope: installed Codex hooks into ${operation.path}`
+      );
+      if (result.skipped.length > 0) {
+        console.log(`Project scope: skipped ${result.skipped.length} existing hook files`);
+      }
+    }
+    return;
+  }
+
   if (operation.action === "sync" && operation.target === "plugin") {
     const result = await syncWorkspacePlugin({
       targetDir: operation.path,
@@ -525,6 +700,27 @@ export async function runCli(argv) {
           ? `${operation.scope === "local" ? "Local" : "Project"} scope: planned MCP config sync in ${result.configPath}`
           : `${operation.scope === "local" ? "Local" : "Project"} scope: synced Codex Kit MCP bundle in ${result.configPath}`
       );
+    }
+    return;
+  }
+
+  if (operation.action === "sync" && operation.target === "hooks") {
+    const result = await syncProjectHooks({
+      targetDir: operation.path,
+      hookRoot,
+      version,
+      force: operation.force,
+      dryRun: operation.dryRun
+    });
+    if (!operation.quiet) {
+      console.log(
+        operation.dryRun
+          ? `Project scope: planned ${result.written.length} hook file syncs in ${operation.path}`
+          : `Project scope: synced Codex hooks in ${operation.path}`
+      );
+      if (result.skipped.length > 0) {
+        console.log(`Project scope: skipped ${result.skipped.length} locally modified hook files`);
+      }
     }
     return;
   }
@@ -579,6 +775,15 @@ export async function runCli(argv) {
     if (result.commentedServers?.length > 0) {
       console.log(`Commented examples: ${result.commentedServers.join(", ")}`);
     }
+    return;
+  }
+
+  if (operation.action === "list" && operation.target === "memories") {
+    const result = await statusLocalMemories({
+      codexHome: operation.codexHome
+    });
+    console.log(`Local scope: memories config path ${result.configPath}`);
+    console.log(`Local scope: memories enabled: ${result.enabled ? "yes" : "no"}`);
     return;
   }
 
@@ -738,6 +943,12 @@ export async function runCli(argv) {
       force: operation.force,
       dryRun: operation.dryRun
     });
+    const memoriesResult = operation.enableMemories
+      ? await installLocalMemories({
+          codexHome: operation.codexHome,
+          dryRun: operation.dryRun
+        })
+      : null;
 
     if (!operation.quiet) {
       console.log(
@@ -755,6 +966,14 @@ export async function runCli(argv) {
           ? `Local scope: planned ${skillsResult.written.length} skill file writes in ${skillsResult.targetDir}`
           : `Local scope: installed shipped skills into ${skillsResult.targetDir}`
       );
+      if (memoriesResult) {
+        console.log(
+          operation.dryRun
+            ? `Local scope: planned memories config update in ${memoriesResult.configPath}`
+            : `Local scope: enabled Codex memories in ${memoriesResult.configPath}`
+        );
+        console.log("Local scope: memories are opt-in, user-local, and no project memory content was written.");
+      }
       console.log("\nNext steps:");
       console.log(`  1. Open Codex in ${operation.path}`);
       console.log("  2. Open Plugins and choose `Codex Kit Local`.");
