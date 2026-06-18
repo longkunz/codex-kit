@@ -6,7 +6,6 @@ tmp/
 # Ignore
 tmp-status-check
 tmp-codex-kit-test
-test
 
 dist
 package-lock.json

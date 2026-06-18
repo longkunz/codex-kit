@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .codex/hooks/user_prompt_secret_scan.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "bash|shell|exec|powershell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .codex/hooks/pre_tool_use_policy.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .codex/hooks/post_tool_use_log.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .codex/hooks/stop_validation.py"
+          }
+        ]
+      }
+    ]
+  }
+}
