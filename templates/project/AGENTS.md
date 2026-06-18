@@ -154,3 +154,38 @@ Use for release-sensitive work:
 - integration or end-to-end checks when available
 - config or migration review
 - release notes and rollback considerations
+
+## Common Guidelines
+
+### Think Before Coding
+
+Read the full request before writing any code. Clarify ambiguities upfront.
+Understand which files, systems, and users are affected before making changes.
+
+### Simplicity First
+
+Choose the simplest solution that correctly satisfies the requirement.
+Avoid premature abstractions, speculative generalization, and unnecessary dependencies.
+If the scope is unclear, implement the minimal version and iterate.
+
+### Surgical Changes
+
+Change only what is necessary. Leave unrelated code, formatting, and naming untouched.
+Each change should be independently reviewable and limited to the stated task.
+
+### Goal-Driven Execution
+
+Keep the original goal in view throughout the task.
+Stop and confirm with the user when scope expands or the approach shifts significantly.
+Prefer incremental, verifiable progress over large opaque rewrites.
+
+### Verify Before Handing Off
+
+Run the relevant tests or linter for every changed code path before reporting done.
+Do not mark a task complete without evidence that it works.
+
+### Respect User-Owned Content
+
+Do not overwrite, reformat, or delete content the user has manually authored
+unless the user explicitly requests it or passes `--force`.
+When in doubt, preserve and report rather than replace.

@@ -636,3 +636,111 @@ test("pre_tool_use_policy allows clean commands", async () => {
   const result = spawnSync("node", [scriptPath], { input: JSON.stringify({ command: "git status" }), encoding: "utf8" });
   assert.equal(result.status, 0);
 });
+
+// --- Common Guidelines tests ---
+
+test("fresh init creates common-guidelines.rules", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const rulesPath = path.join(targetDir, ".codex/rules/common-guidelines.rules");
+    const content = await readFile(rulesPath, "utf8");
+    assert.match(content, /Common Guidelines/);
+    assert.match(content, /Behavioral guidelines live in AGENTS\.md/);
+    assert.match(content, /prefix_rule/);
+
+    // Confirm it is tracked in the manifest under the rules target
+    const manifest = await readManifest(targetDir);
+    assert.ok(
+      manifest.files.some(
+        (file) => file.path === ".codex/rules/common-guidelines.rules" && file.target === "rules"
+      )
+    );
+  });
+});
+
+test("fresh init creates AGENTS.md containing Common Guidelines", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const content = await readFile(path.join(targetDir, "AGENTS.md"), "utf8");
+    assert.match(content, /## Common Guidelines/);
+    assert.match(content, /Think Before Coding/);
+    assert.match(content, /Simplicity First/);
+    assert.match(content, /Surgical Changes/);
+    assert.match(content, /Goal-Driven Execution/);
+    assert.match(content, /Verify Before Handing Off/);
+    assert.match(content, /Respect User-Owned Content/);
+  });
+});
+
+test("repeated init leaves AGENTS.md unchanged (idempotent)", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const afterFirst = await readFile(path.join(targetDir, "AGENTS.md"), "utf8");
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const afterSecond = await readFile(path.join(targetDir, "AGENTS.md"), "utf8");
+
+    assert.equal(afterSecond, afterFirst);
+    // Exactly one occurrence of the heading
+    assert.equal((afterSecond.match(/## Common Guidelines/g) || []).length, 1);
+  });
+});
+
+test("pre-existing user AGENTS.md is preserved without --force", async () => {
+  await withTempProject(async (targetDir) => {
+    const agentsPath = path.join(targetDir, "AGENTS.md");
+    await writeFile(agentsPath, "# My Project\n\nUser-owned content.\n", "utf8");
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const content = await readFile(agentsPath, "utf8");
+    assert.match(content, /User-owned content/);
+    // Common Guidelines block is NOT injected into user-owned AGENTS.md
+    assert.doesNotMatch(content, /## Common Guidelines/);
+
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find((f) => f.path === "AGENTS.md");
+    assert.equal(entry.status, "unmanaged");
+  });
+});
+
+test("--force writes template AGENTS.md with Common Guidelines", async () => {
+  await withTempProject(async (targetDir) => {
+    const agentsPath = path.join(targetDir, "AGENTS.md");
+    await writeFile(agentsPath, "# My Project\n\nUser-owned content.\n", "utf8");
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version, force: true });
+
+    const content = await readFile(agentsPath, "utf8");
+    assert.match(content, /## Common Guidelines/);
+    assert.match(content, /Think Before Coding/);
+    assert.doesNotMatch(content, /User-owned content/);
+
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find((f) => f.path === "AGENTS.md");
+    assert.equal(entry.status, "managed");
+  });
+});
+
+test("doctor reports no failures after fresh init with Common Guidelines", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const result = await runDoctor({
+      targetDir,
+      templateRoot,
+      pluginRoot,
+      hookRoot,
+      codexHome: path.join(targetDir, "codex-home"),
+      version
+    });
+
+    assert.equal(result.summary.fail, 0);
+    // Rules check should be ok and count both default.rules and common-guidelines.rules
+    const rulesCheck = result.checks.find((c) => c.name === "rules" && c.status === "ok");
+    assert.ok(rulesCheck);
+    assert.match(rulesCheck.message, /2 rules file/);
+  });
+});

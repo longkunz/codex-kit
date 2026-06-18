@@ -1,0 +1,17 @@
+# Common Guidelines — Codex Kit
+#
+# Behavioral guidelines live in AGENTS.md (Think Before Coding, Simplicity First,
+# Surgical Changes, Goal-Driven Execution, Verify Before Handing Off,
+# Respect User-Owned Content).
+#
+# Codex rules are for command-level execution policy only.
+# Add project-specific prefix_rule(...) entries here when you want to prompt,
+# allow, or forbid concrete commands outside the sandbox.
+#
+# Example:
+# prefix_rule(
+#     pattern = ["git", "push", "--force"],
+#     decision = "prompt",
+#     justification = "Force-pushing should require explicit approval.",
+#     match = ["git push --force"],
+# )
