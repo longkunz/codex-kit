@@ -108,22 +108,22 @@ export const docSections: DocSection[] = [
         title: "Installation",
         summary: "Install the CLI and scaffold a repository that is ready for Codex.",
         intro: [
-          "Codex Kit is published as `@daominhhiep/codex-kit`.",
+          "Codex Kit is published as `@longkunz/codex-kit`.",
           "You can run it with `npx`, install it globally, or point it at a target directory when you want to scaffold into a new folder."
         ],
         blocks: [
           {
             id: "quick-install",
             title: "Quick Install",
-            code: `npx @daominhhiep/codex-kit init
+            code: `npx @longkunz/codex-kit init
 
-npm install -g @daominhhiep/codex-kit
+npm install -g @longkunz/codex-kit
 codex-kit init`
           },
           {
             id: "target-directory",
             title: "Initialize Into A Target Directory",
-            code: `npx @daominhhiep/codex-kit init --path ./my-project`
+            code: `npx @longkunz/codex-kit init --path ./my-project`
           },
           {
             id: "written-layout",
@@ -201,12 +201,12 @@ codex/
               "After that, open the `Plugins` view in Codex, choose the `Codex Kit Local` marketplace, and click the `+` button on `Codex Kit`.",
               "If you also want the full shipped skill catalog in local Codex, run the full setup command below."
             ],
-            code: `npx @daominhhiep/codex-kit init
-npx @daominhhiep/codex-kit install
-npx @daominhhiep/codex-kit install --target plugin
+            code: `npx @longkunz/codex-kit init
+npx @longkunz/codex-kit install
+npx @longkunz/codex-kit install --target plugin
 
-npx @daominhhiep/codex-kit setup-codex
-npx @daominhhiep/codex-kit sync-codex`,
+npx @longkunz/codex-kit setup-codex
+npx @longkunz/codex-kit sync-codex`,
             image: {
               src: "/codex-kit-plugin-install.png",
               alt: "Codex Plugin Directory showing the Codex Kit Local marketplace and the Codex Kit install card.",
@@ -218,8 +218,8 @@ npx @daominhhiep/codex-kit sync-codex`,
             id: "plugin-install-steps",
             title: "Plugin Install Steps",
             bullets: [
-              "Run `npx @daominhhiep/codex-kit init` or `npx @daominhhiep/codex-kit install` if the repository does not have the Codex Kit scaffold yet.",
-              "Run `npx @daominhhiep/codex-kit install --target plugin` to add the workspace plugin files and marketplace entry.",
+              "Run `npx @longkunz/codex-kit init` or `npx @longkunz/codex-kit install` if the repository does not have the Codex Kit scaffold yet.",
+              "Run `npx @longkunz/codex-kit install --target plugin` to add the workspace plugin files and marketplace entry.",
               "Restart Codex or reopen the workspace if the local marketplace is not visible yet.",
               "Open `Plugins` in the left sidebar.",
               "Switch the marketplace selector to `Codex Kit Local`.",
@@ -234,9 +234,9 @@ npx @daominhhiep/codex-kit sync-codex`,
               "Run `install --target skills` when you only want the shipped project skills and shared skill assets copied into the current repository.",
               "This installs the project-local skill bundle under `.agents/skills` and `.agents/.shared` without touching local Codex."
             ],
-            code: `npx @daominhhiep/codex-kit install --target skills
+            code: `npx @longkunz/codex-kit install --target skills
 
-npx @daominhhiep/codex-kit sync --target skills`
+npx @longkunz/codex-kit sync --target skills`
           },
           {
             id: "mcp-install",
@@ -245,11 +245,11 @@ npx @daominhhiep/codex-kit sync --target skills`
               "Codex stores MCP configuration in `config.toml`, either in project scope at `.codex/config.toml` or in local scope at `${CODEX_HOME:-~/.codex}/config.toml`.",
               "Codex Kit ships a default MCP bundle based on the current project scaffold, including `context7` and a commented `mysql` example using `@benborla29/mcp-server-mysql`."
             ],
-            code: `npx @daominhhiep/codex-kit install --target mcp
+            code: `npx @longkunz/codex-kit install --target mcp
 
-npx @daominhhiep/codex-kit install --target mcp --scope local
-npx @daominhhiep/codex-kit sync --target mcp
-npx @daominhhiep/codex-kit list --target mcp`
+npx @longkunz/codex-kit install --target mcp --scope local
+npx @longkunz/codex-kit sync --target mcp
+npx @longkunz/codex-kit list --target mcp`
           },
           {
             id: "local-skill-install",
@@ -258,9 +258,9 @@ npx @daominhhiep/codex-kit list --target mcp`
               "Use `install --target skills --scope local` when you want the shipped Codex Kit skill catalog available in local Codex outside a single project workspace.",
               "By default, Codex Kit installs the skills into `${CODEX_HOME:-~/.codex}/skills`. Use `--codex-home` to override that location."
             ],
-            code: `npx @daominhhiep/codex-kit install --target skills --scope local
+            code: `npx @longkunz/codex-kit install --target skills --scope local
 
-npx @daominhhiep/codex-kit install --target skills --scope local --codex-home ~/.codex`,
+npx @longkunz/codex-kit install --target skills --scope local --codex-home ~/.codex`,
             image: {
               src: "/codex-kit-skill-install.png",
               alt: "Codex interface showing the installed Codex Kit skills in local Codex.",
@@ -290,11 +290,11 @@ npx @daominhhiep/codex-kit install --target skills --scope local --codex-home ~/
               "Use `--skills` when you want to install, sync, or remove only specific skill folders instead of the full catalog.",
               "`remove --target skills --scope local` requires `--skills` so the CLI does not remove the full local skill catalog by accident."
             ],
-            code: `npx @daominhhiep/codex-kit sync --target skills --scope local
+            code: `npx @longkunz/codex-kit sync --target skills --scope local
 
-npx @daominhhiep/codex-kit install --target skills --scope local --skills clean-code,planning
-npx @daominhhiep/codex-kit sync --target skills --scope local --skills clean-code,planning
-npx @daominhhiep/codex-kit remove --target skills --scope local --skills clean-code,planning`
+npx @longkunz/codex-kit install --target skills --scope local --skills clean-code,planning
+npx @longkunz/codex-kit sync --target skills --scope local --skills clean-code,planning
+npx @longkunz/codex-kit remove --target skills --scope local --skills clean-code,planning`
           },
           {
             id: "skill-discovery",
@@ -305,10 +305,10 @@ npx @daominhhiep/codex-kit remove --target skills --scope local --skills clean-c
               "Use `list --target skills --scope local` to compare what is already installed in local Codex.",
               "The bundled plugin can also map natural requests such as `cài skill frontend` or `liệt kê skills debug` to the right Codex Kit commands."
             ],
-            code: `npx @daominhhiep/codex-kit list --target skills
+            code: `npx @longkunz/codex-kit list --target skills
 
-npx @daominhhiep/codex-kit list --target skills --query frontend
-npx @daominhhiep/codex-kit list --target skills --scope local`
+npx @longkunz/codex-kit list --target skills --query frontend
+npx @longkunz/codex-kit list --target skills --scope local`
           }
         ]
       }
