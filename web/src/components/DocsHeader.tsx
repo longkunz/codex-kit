@@ -39,7 +39,7 @@ export function DocsHeader({
               GitHub
             </a>
             <a
-              href="https://www.npmjs.com/package/@daominhhiep/codex-kit"
+              href="https://www.npmjs.com/package/@longkunz/codex-kit"
               target="_blank"
               rel="noreferrer"
               className="top-link"

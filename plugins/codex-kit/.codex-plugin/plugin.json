@@ -1,6 +1,6 @@
 {
   "name": "codex-kit",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Codex Kit plugin with skills, hooks, and MCP helpers for Codex-ready repositories.",
   "author": {
     "name": "Dao Minh Hiep",

@@ -73,7 +73,7 @@ function getLandingSeo(): SeoPayload {
       },
       sameAs: [
         "https://github.com/daominhhiep/codex-kit",
-        "https://www.npmjs.com/package/@daominhhiep/codex-kit"
+        "https://www.npmjs.com/package/@longkunz/codex-kit"
       ]
     }
   };

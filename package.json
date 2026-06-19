@@ -1,6 +1,6 @@
 {
-  "name": "@daominhhiep/codex-kit",
-  "version": "0.2.0",
+  "name": "@longkunz/codex-kit",
+  "version": "1.0.0",
   "description": "Codex kit with reusable skills, subagents, workflows, and a project scaffold CLI.",
   "type": "module",
   "bin": {
@@ -30,11 +30,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/daominhhiep/codex-kit.git"
+    "url": "git+https://github.com/longkunz/codex-kit.git"
   },
-  "homepage": "https://github.com/daominhhiep/codex-kit#readme",
+  "homepage": "https://github.com/longkunz/codex-kit#readme",
   "bugs": {
-    "url": "https://github.com/daominhhiep/codex-kit/issues"
+    "url": "https://github.com/longkunz/codex-kit/issues"
   },
   "license": "MIT"
 }

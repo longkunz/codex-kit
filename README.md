@@ -1,13 +1,11 @@
 # Codex Kit
 
-[![npm version](https://img.shields.io/npm/v/@daominhhiep/codex-kit.svg)](https://www.npmjs.com/package/@daominhhiep/codex-kit)
+[![npm version](https://img.shields.io/npm/v/@longkunz/codex-kit.svg)](https://www.npmjs.com/package/@longkunz/codex-kit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+*Read this in other languages: [English](README.md), [Tiếng Việt](README-vi.md)*
+
 > Codex-native starter kit with scaffolded docs, skills, workflows, agents, plugin support, and local skill management.
-
-**[Official Website](https://codexkit.xyz/)** | **[Web Docs](https://codexkit.xyz/#/docs/introduction)**
-
-<a href="https://unikorn.vn/p/codex-kit?ref=embed-codex-kit" target="_blank"><img src="https://unikorn.vn/api/widgets/badge/codex-kit?theme=dark" alt="Codex Kit trên Unikorn.vn" style="width: 256px; height: 64px;" width="256" height="64" /></a>
 
 Codex Kit helps you bootstrap a repository that already knows how to work with Codex.
 
@@ -16,20 +14,20 @@ Instead of rebuilding the same operating layer in every project, you get a ready
 ## Quick Install
 
 ```bash
-npx @daominhhiep/codex-kit init
+npx @longkunz/codex-kit init
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @daominhhiep/codex-kit
+npm install -g @longkunz/codex-kit
 codex-kit init
 ```
 
 Initialize into a specific directory:
 
 ```bash
-npx @daominhhiep/codex-kit init --path ./my-project
+npx @longkunz/codex-kit init --path ./my-project
 ```
 
 ## What You Get
@@ -146,15 +144,15 @@ There are two different installation scopes:
 To scaffold a project:
 
 ```bash
-npx @daominhhiep/codex-kit init
-npx @daominhhiep/codex-kit install
+npx @longkunz/codex-kit init
+npx @longkunz/codex-kit install
 ```
 
 The default scaffold leaves the workspace plugin and hooks out. Include the plugin during init, or include every project-scoped optional bundle:
 
 ```bash
-npx @daominhhiep/codex-kit init --include-plugin
-npx @daominhhiep/codex-kit init --all
+npx @longkunz/codex-kit init --include-plugin
+npx @longkunz/codex-kit init --all
 ```
 
 `--all` includes the plugin and project hooks. It does not enable user-local memories.
@@ -162,7 +160,7 @@ npx @daominhhiep/codex-kit init --all
 To install only the workspace plugin into the current project:
 
 ```bash
-npx @daominhhiep/codex-kit install --target plugin
+npx @longkunz/codex-kit install --target plugin
 ```
 
 The installed plugin bundles its Codex Kit skill, safe local hooks, and the `context7` MCP configuration. Hook scripts do not make network calls or log prompt text, file contents, or environment values.
@@ -179,13 +177,13 @@ Run `codex-kit doctor` first to validate the marketplace name, source path, poli
 To install only the shipped project skills into the current project:
 
 ```bash
-npx @daominhhiep/codex-kit install --target skills
+npx @longkunz/codex-kit install --target skills
 ```
 
 To install the optional safe hook bundle into the current project:
 
 ```bash
-npx @daominhhiep/codex-kit install --target hooks
+npx @longkunz/codex-kit install --target hooks
 ```
 
 The hook bundle creates:
@@ -201,8 +199,8 @@ Hooks are safe by default: they run locally, do not make network calls, and do n
 To install the shipped MCP bundle into the project or local Codex config:
 
 ```bash
-npx @daominhhiep/codex-kit install --target mcp
-npx @daominhhiep/codex-kit install --target mcp --scope local
+npx @longkunz/codex-kit install --target mcp
+npx @longkunz/codex-kit install --target mcp --scope local
 ```
 
 The shipped MCP bundle currently includes:
@@ -213,14 +211,14 @@ The shipped MCP bundle currently includes:
 To do the full local setup in one go for the current repository:
 
 ```bash
-npx @daominhhiep/codex-kit setup-codex
+npx @longkunz/codex-kit setup-codex
 ```
 
 Memories are opt-in and user-local only. To enable them:
 
 ```bash
-npx @daominhhiep/codex-kit install --target memories --scope local
-npx @daominhhiep/codex-kit setup-codex --enable-memories
+npx @longkunz/codex-kit install --target memories --scope local
+npx @longkunz/codex-kit setup-codex --enable-memories
 ```
 
 This writes only to `${CODEX_HOME:-~/.codex}/config.toml`:
@@ -240,13 +238,13 @@ Project scaffolds never enable memories by default and never write personal memo
 After upgrading Codex Kit, sync both the workspace plugin and local shipped skills:
 
 ```bash
-npx @daominhhiep/codex-kit sync-codex
+npx @longkunz/codex-kit sync-codex
 ```
 
 To install the shipped skills into local Codex:
 
 ```bash
-npx @daominhhiep/codex-kit install --target skills --scope local
+npx @longkunz/codex-kit install --target skills --scope local
 ```
 
 By default, local skills are installed into:
@@ -260,9 +258,9 @@ ${CODEX_HOME:-~/.codex}/skills
 Inspired by [midudev/autoskills](https://github.com/midudev/autoskills), Codex Kit ships its own auto-detection command. Instead of pulling from third-party registries, it scans the project stack and installs only the relevant skills from Codex Kit's audited catalog.
 
 ```bash
-npx @daominhhiep/codex-kit autoskills
-npx @daominhhiep/codex-kit autoskills --scope local
-npx @daominhhiep/codex-kit autoskills --dry-run
+npx @longkunz/codex-kit autoskills
+npx @longkunz/codex-kit autoskills --scope local
+npx @longkunz/codex-kit autoskills --dry-run
 ```
 
 The scanner inspects `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, framework config files (Next.js, Tailwind, Playwright, Vitest, ...) and file extensions (`.sh`, `.ps1`, `.tsx`, ...). It also recognizes cross-stack combos such as `React + Tailwind CSS`, `Next.js + Playwright`, or `FastAPI + SQLAlchemy`, and adds a small "frontend bonus" (design + SEO) when a web frontend is detected.
@@ -272,9 +270,9 @@ Project-scope installs land in `.agents/skills/<skill>/` next to the rest of the
 To browse or search the shipped catalog:
 
 ```bash
-npx @daominhhiep/codex-kit list --target skills
-npx @daominhhiep/codex-kit list --target skills --query frontend
-npx @daominhhiep/codex-kit list --target skills --scope local
+npx @longkunz/codex-kit list --target skills
+npx @longkunz/codex-kit list --target skills --query frontend
+npx @longkunz/codex-kit list --target skills --scope local
 ```
 
 The bundled plugin can also help map natural requests such as "cài skill frontend" or "liệt kê skills debug" to the right Codex Kit commands.
@@ -298,9 +296,9 @@ It does not replace `AGENTS.md`, skills, or workflows. Those files still handle 
 Use `doctor` to validate a generated workspace:
 
 ```bash
-npx @daominhhiep/codex-kit doctor
-npx @daominhhiep/codex-kit doctor --json
-npx @daominhhiep/codex-kit doctor --fix
+npx @longkunz/codex-kit doctor
+npx @longkunz/codex-kit doctor --json
+npx @longkunz/codex-kit doctor --fix
 ```
 
 Doctor validates `AGENTS.md`, skills, subagents, `.codex/config.toml`, rules, hooks, plugin marketplace flow and metadata, bundled plugin hooks/MCP, manifest consistency, and local memory status. Warnings do not fail by default; `--strict` treats warnings as failures. `--fix` performs safe repairs such as legacy rules-path migration and manifest resync for generated files that already exist on disk.
