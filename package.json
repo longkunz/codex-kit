@@ -1,6 +1,6 @@
 {
   "name": "@longkunz/codex-kit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Codex kit with reusable skills, subagents, workflows, and a project scaffold CLI.",
   "type": "module",
   "bin": {
