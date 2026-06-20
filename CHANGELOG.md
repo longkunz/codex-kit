@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-06-20
+
+### Changed
+
+* Skills are now exclusively installed into the current project repository (`<repo>/.agents/skills`). User-scope skill installation is no longer supported.
+  - `setup-codex` now installs shipped skills into the project scope instead of `~/.codex/skills`.
+  - `sync-codex` now syncs shipped skills in the project scope instead of `~/.codex/skills`.
+  - `autoskills` always writes to the project scope; `--scope local` is ignored and treated as `project`.
+
+### Removed
+
+* Removed CLI flag `--scope local` for `--target skills` (install, sync, list). Passing it now returns a clear error.
+* Removed legacy commands: `install-skills`, `sync-skills`, `remove-skills`, `list-installed-skills`. These now return a removal error with a migration hint.
+* Removed `autoskills --scope local`; the command always uses project scope.
+
+### Migration
+
+If you previously used `install-skills` or `--scope local --target skills`, use:
+
+```
+codex-kit install --target skills
+```
+
+to install skills into the current project instead.
+
 ## [1.0.0] - 2026-06-19
 
 ### Added
