@@ -26,7 +26,8 @@ const repoRoot = path.resolve(__dirname, "..");
 const templateRoot = path.join(repoRoot, "templates/project");
 const hookRoot = path.join(repoRoot, "templates/hooks");
 const pluginRoot = path.join(repoRoot, "plugins/codex-kit");
-const version = "1.0.0";
+const packageJson = JSON.parse(await readFile(path.join(repoRoot, "package.json"), "utf8"));
+const version = packageJson.version;
 
 async function withTempProject(fn) {
   const targetDir = await mkdtemp(path.join(os.tmpdir(), "codex-kit-test-"));

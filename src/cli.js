@@ -5,15 +5,11 @@ import { fileURLToPath } from "node:url";
 import {
   initProject,
   installProjectHooks,
-  installLocalSkills,
   installProjectSkills,
   installWorkspacePlugin,
-  listInstalledLocalSkills,
-  removeLocalSkills,
   statusProject,
   statusWorkspacePlugin,
   syncProjectHooks,
-  syncLocalSkills,
   syncProjectSkills,
   syncWorkspacePlugin,
   updateProject
@@ -35,6 +31,7 @@ import {
 import { runAutoskills } from "./lib/autoskills.js";
 import { runDoctor } from "./lib/doctor.js";
 
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageJsonPath = path.resolve(__dirname, "../package.json");
 
@@ -50,12 +47,10 @@ Primary commands:
             Install only the Codex Kit workspace plugin into the target project
   install --target mcp
             Install the shipped MCP bundle into the project \`.codex/config.toml\`
-  install --target skills
-            Install only the shipped Codex Kit project skills into the target project
-  install --target skills --scope local
-            Install shipped Codex Kit skills into local Codex
   install --target mcp --scope local
             Install the shipped MCP bundle into \`\${CODEX_HOME}/config.toml\`
+  install --target skills
+            Install shipped Codex Kit project skills into the target project
   install --target memories --scope local
             Enable Codex memories in local Codex config only
   update
@@ -64,34 +59,18 @@ Primary commands:
             Sync the Codex Kit workspace plugin in the target project
   sync --target mcp
             Sync the shipped MCP bundle in the project \`.codex/config.toml\`
-  sync --target skills
-            Sync the shipped Codex Kit project skills in the target project
-  sync --target skills --scope local
-            Overwrite local Codex skills with the shipped Codex Kit version
   sync --target mcp --scope local
             Sync the shipped MCP bundle in \`\${CODEX_HOME}/config.toml\`
+  sync --target skills
+            Sync the shipped Codex Kit project skills in the target project
   list --target skills
             List shipped Codex Kit skills grouped by category
-  list --target skills --scope local
-            List shipped Codex Kit skills currently installed in local Codex
   list --target plugin
             Show workspace plugin status for the target project
   list --target mcp
             Show shipped MCP bundle status for project or local Codex config
-  remove --target skills --scope local --skills <list>
-            Remove specific Codex Kit skills from local Codex
-
-Dedicated mixed-scope commands:
-  setup-codex
-            Scaffold the workspace plugin and install shipped skills locally
-  setup-codex --enable-memories
-            Also enable local Codex memories after showing opt-in intent
-  sync-codex
-            Sync the workspace plugin and local shipped skills after upgrading Codex Kit
   autoskills
             Auto-detect the project stack and install matching shipped skills
-  autoskills --scope local
-            Install matching shipped skills into local Codex (\`\${CODEX_HOME}/skills\`)
   autoskills --dry-run
             Preview the detected stack and matching skills without writing files
   status
@@ -105,24 +84,15 @@ Dedicated mixed-scope commands:
   doctor --hooks
             Show hook-related doctor checks
 
-Legacy aliases:
-  sync --target project
-  update
-  list-skills
-  search-skills <query>
-  list-installed-skills
-  install-skills
-  sync-skills
-  remove-skills
 
 Options:
   --target <name>   Command target: project, plugin, mcp, skills, hooks, or memories
-  --scope <name>    Scope: project (default) or local
+  --scope <name>    Scope: project (default). Only MCP and memories support --scope local
   --query <text>    Search query for \`list --target skills\`
   --path <dir>      Target directory (default: current working directory)
   --codex-home <dir>
-                    Codex home directory for local skill installation
-  --skills <list>   Comma-separated skill names for install/sync/remove
+                    Codex home directory (default: ~/.codex)
+  --skills <list>   Comma-separated skill names for \`install --target skills\`
   --include-plugin  Install the workspace plugin during \`init\` or \`install --target project\`
   --install-plugin  Legacy alias for \`--include-plugin\`
   --include-hooks   Install project hooks during \`init\` or \`install --target project\`
@@ -135,6 +105,10 @@ Options:
   --fix             Apply safe repairs for \`doctor\`
   --quiet           Suppress non-essential output
   -h, --help        Show this help
+
+Note: User-level skill installation is not supported by Codex Kit.
+      Skills are always installed into the current project repository.
+      For personal skills, use Codex's native skill tooling.
 `);
 }
 
@@ -292,12 +266,6 @@ function normalizeOperation(options) {
         scope: "project",
         installPlugin: options.installPlugin
       });
-    case "install-skills":
-      return buildOperation("install", options, { target: "skills", scope: "local" });
-    case "sync-skills":
-      return buildOperation("sync", options, { target: "skills", scope: "local" });
-    case "remove-skills":
-      return buildOperation("remove", options, { target: "skills", scope: "local" });
     case "list-skills":
       return buildOperation("list", options, { target: "skills", scope: "project" });
     case "search-skills": {
@@ -311,20 +279,30 @@ function normalizeOperation(options) {
         query
       });
     }
-    case "list-installed-skills":
-      return buildOperation("list", options, { target: "skills", scope: "local" });
     case "setup-codex":
       return buildOperation("setup-codex", options);
     case "sync-codex":
       return buildOperation("sync-codex", options);
     case "autoskills":
       return buildOperation("autoskills", options, {
-        scope: options.scope || "project"
+        scope: "project"
       });
     case "status":
       return buildOperation("status", options);
     case "doctor":
       return buildOperation("doctor", options);
+    // Removed legacy commands that installed to local/user scope:
+    case "install-skills":
+    case "sync-skills":
+    case "remove-skills":
+    case "list-installed-skills":
+      throw new Error(
+        `\`${options.command}\` has been removed. User-level skill installation is not supported by Codex Kit.\n\n` +
+        `Codex Kit manages repository skills only:\n` +
+        `  <repo>/.agents/skills\n\n` +
+        `Use \`codex-kit install --target skills\` to install skills into the current project.\n` +
+        `For personal skills, use Codex's native skill tooling.`
+      );
     default:
       throw new Error(`Unknown command: ${options.command}`);
   }
@@ -348,6 +326,16 @@ function validateOperation(operation) {
     }
   }
 
+  // Skills are project-scope only. Reject local/user/global scope explicitly.
+  if (operation.target === "skills" && operation.scope === "local") {
+    throw new Error(
+      `User-level skill installation is not supported by Codex Kit.\n\n` +
+      `Codex Kit manages repository skills only:\n` +
+      `  <repo>/.agents/skills\n\n` +
+      `For personal skills, use Codex's native skill tooling.`
+    );
+  }
+
   if (operation.positionals.length > 0 && operation.action !== "list") {
     throw new Error(`Unexpected positional arguments: ${operation.positionals.join(" ")}`);
   }
@@ -361,11 +349,11 @@ function validateOperation(operation) {
   }
 
   if (operation.target === "skills") {
-    if (operation.action === "remove" && operation.scope !== "local") {
-      throw new Error("`remove --target skills` currently supports only `--scope local`.");
+    if (operation.action === "remove") {
+      throw new Error("`remove --target skills` is not supported. Skills are project-managed.");
     }
-    if (operation.action === "list" && operation.scope === "local" && operation.query) {
-      throw new Error("`list --target skills --scope local` does not support `--query`.");
+    if (operation.action === "list" && operation.query) {
+      // query on project-scope list is fine, no extra check needed
     }
     if (
       ["install", "sync"].includes(operation.action) &&
@@ -373,7 +361,7 @@ function validateOperation(operation) {
       operation.skills.length > 0
     ) {
       throw new Error(
-        `\`${operation.action} --target skills\` installs the full project skill bundle. Use \`--scope local --skills ...\` for targeted local skill installs.`
+        `\`${operation.action} --target skills\` installs the full project skill bundle. Use \`--skills ...\` only with targeted installs.`
       );
     }
   }
@@ -411,13 +399,10 @@ function validateOperation(operation) {
   }
 
   if (operation.action === "remove" && operation.target !== "skills") {
-    throw new Error("`remove` currently supports only `--target skills --scope local`.");
-  }
-
-  if (operation.action === "remove" && operation.target === "skills" && operation.skills.length === 0) {
-    throw new Error("`remove --target skills --scope local` requires `--skills <name[,name...]>`.");
+    throw new Error("`remove` currently supports only `--target skills`.");
   }
 }
+
 
 async function getPackageVersion() {
   const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8"));
@@ -466,7 +451,7 @@ export async function runCli(argv) {
   const skillsRoot = path.resolve(templateRoot, ".agents/skills");
   const hookRoot = path.resolve(__dirname, "../templates/hooks");
   const pluginRoot = path.resolve(__dirname, "../plugins/codex-kit");
-  const localInstallCommand = "codex-kit install --target skills --scope local --skills";
+  const projectInstallCommand = "codex-kit install --target skills";
 
   await mkdir(operation.path, { recursive: true });
 
@@ -801,19 +786,19 @@ export async function runCli(argv) {
     return;
   }
 
-  if (operation.action === "list" && operation.target === "skills" && operation.scope === "project") {
+  if (operation.action === "list" && operation.target === "skills") {
     if (operation.query) {
       const results = await searchShippedSkills({ skillsRoot, query: operation.query });
-      printSearchResults(operation.query, results, localInstallCommand);
+      printSearchResults(operation.query, results, projectInstallCommand);
       return;
     }
 
     const skills = await getSelectedShippedSkills({ skillsRoot, skills: operation.skills });
-    printCatalog(skills, localInstallCommand);
+    printCatalog(skills, projectInstallCommand);
     return;
   }
 
-  if (operation.action === "install" && operation.target === "skills" && operation.scope === "project") {
+  if (operation.action === "install" && operation.target === "skills") {
     const result = await installProjectSkills({
       targetDir: operation.path,
       templateRoot,
@@ -834,34 +819,7 @@ export async function runCli(argv) {
     return;
   }
 
-  if (operation.action === "list" && operation.target === "skills" && operation.scope === "local") {
-    const result = await listInstalledLocalSkills({
-      skillsRoot,
-      codexHome: operation.codexHome
-    });
-    const grouped = groupSkillsByCategory(result.installed);
-
-    console.log(`Local scope: installed Codex Kit skills in ${result.targetRoot}: ${result.installed.length}`);
-    if (result.installed.length === 0) {
-      console.log("Local scope: no shipped Codex Kit skills are currently installed.");
-      return;
-    }
-
-    for (const group of grouped) {
-      console.log(`\n${group.category}`);
-      for (const skill of group.skills) {
-        console.log(`  - ${skill.name}: ${skill.summary}`);
-      }
-    }
-
-    if (result.missing.length > 0) {
-      console.log(`\nLocal scope: missing shipped skills: ${result.missing.length}`);
-      console.log("  Run `codex-kit install --target skills --scope local` to install the full shipped catalog.");
-    }
-    return;
-  }
-
-  if (operation.action === "sync" && operation.target === "skills" && operation.scope === "project") {
+  if (operation.action === "sync" && operation.target === "skills") {
     const result = await syncProjectSkills({
       targetDir: operation.path,
       templateRoot,
@@ -882,64 +840,6 @@ export async function runCli(argv) {
     return;
   }
 
-  if (operation.action === "install" && operation.target === "skills") {
-    const result = await installLocalSkills({
-      skillsRoot,
-      codexHome: operation.codexHome,
-      skills: operation.skills,
-      force: operation.force,
-      dryRun: operation.dryRun
-    });
-    if (!operation.quiet) {
-      console.log(
-        operation.dryRun
-          ? `Local scope: planned ${result.written.length} skill file writes in ${result.targetDir}`
-          : `Local scope: installed Codex Kit skills into ${result.targetDir}`
-      );
-      if (result.skipped.length > 0) {
-        console.log(`Local scope: skipped ${result.skipped.length} existing skill files`);
-      }
-    }
-    return;
-  }
-
-  if (operation.action === "sync" && operation.target === "skills") {
-    const result = await syncLocalSkills({
-      skillsRoot,
-      codexHome: operation.codexHome,
-      skills: operation.skills,
-      dryRun: operation.dryRun
-    });
-    if (!operation.quiet) {
-      console.log(
-        operation.dryRun
-          ? `Local scope: planned ${result.written.length} skill file syncs in ${result.targetDir}`
-          : `Local scope: synced Codex Kit skills into ${result.targetDir}`
-      );
-    }
-    return;
-  }
-
-  if (operation.action === "remove" && operation.target === "skills") {
-    const result = await removeLocalSkills({
-      skillsRoot,
-      codexHome: operation.codexHome,
-      skills: operation.skills,
-      dryRun: operation.dryRun
-    });
-    if (!operation.quiet) {
-      console.log(
-        operation.dryRun
-          ? `Local scope: planned removal of ${result.removed.length} skills from ${result.targetDir}`
-          : `Local scope: removed ${result.removed.length} skills from ${result.targetDir}`
-      );
-      if (result.skipped.length > 0) {
-        console.log(`Local scope: skipped ${result.skipped.length} missing skills`);
-      }
-    }
-    return;
-  }
-
   if (operation.action === "setup-codex") {
     const initResult = await initProject({
       targetDir: operation.path,
@@ -950,10 +850,10 @@ export async function runCli(argv) {
       force: operation.force,
       dryRun: operation.dryRun
     });
-    const skillsResult = await installLocalSkills({
-      skillsRoot,
-      codexHome: operation.codexHome,
-      skills: operation.skills,
+    const skillsResult = await installProjectSkills({
+      targetDir: operation.path,
+      templateRoot,
+      version,
       force: operation.force,
       dryRun: operation.dryRun
     });
@@ -977,8 +877,8 @@ export async function runCli(argv) {
       );
       console.log(
         operation.dryRun
-          ? `Local scope: planned ${skillsResult.written.length} skill file writes in ${skillsResult.targetDir}`
-          : `Local scope: installed shipped skills into ${skillsResult.targetDir}`
+          ? `Project scope: planned ${skillsResult.written.length} skill file writes in ${operation.path}`
+          : `Project scope: installed shipped skills into ${operation.path}`
       );
       if (memoriesResult) {
         console.log(
@@ -992,7 +892,7 @@ export async function runCli(argv) {
       console.log(`  1. Open Codex in ${operation.path}`);
       console.log("  2. Open Plugins and choose `Codex Kit Local`.");
       console.log("  3. Click `+` on `Codex Kit` to install the workspace plugin.");
-      console.log("  4. Start a new thread and use `@Codex Kit` or any installed local skills.");
+      console.log("  4. Start a new thread and use `@Codex Kit` or any installed project skills.");
     }
     return;
   }
@@ -1007,10 +907,11 @@ export async function runCli(argv) {
       force: operation.force,
       dryRun: operation.dryRun
     });
-    const skillsResult = await syncLocalSkills({
-      skillsRoot,
-      codexHome: operation.codexHome,
-      skills: operation.skills,
+    const skillsResult = await syncProjectSkills({
+      targetDir: operation.path,
+      templateRoot,
+      version,
+      force: operation.force,
       dryRun: operation.dryRun
     });
 
@@ -1027,8 +928,8 @@ export async function runCli(argv) {
       );
       console.log(
         operation.dryRun
-          ? `Local scope: planned ${skillsResult.written.length} skill file syncs in ${skillsResult.targetDir}`
-          : `Local scope: shipped skills synced into ${skillsResult.targetDir}`
+          ? `Project scope: planned ${skillsResult.written.length} skill file syncs in ${operation.path}`
+          : `Project scope: shipped skills synced into ${operation.path}`
       );
       if (updateResult.skipped.length > 0) {
         console.log(`Project scope: skipped ${updateResult.skipped.length} locally modified workspace files`);
@@ -1038,15 +939,11 @@ export async function runCli(argv) {
   }
 
   if (operation.action === "autoskills") {
-    if (!["project", "local"].includes(operation.scope)) {
-      throw new Error("`autoskills --scope` must be either `project` or `local`.");
-    }
-
     const result = await runAutoskills({
       projectDir: operation.path,
       skillsRoot,
       codexHome: operation.codexHome,
-      scope: operation.scope,
+      scope: "project",
       dryRun: operation.dryRun,
       force: operation.force
     });
@@ -1055,59 +952,58 @@ export async function runCli(argv) {
       return;
     }
 
-    const scopeLabel = operation.scope === "local" ? "Local" : "Project";
-
     if (result.detected.length === 0 && !result.isFrontend) {
-      console.log(`${scopeLabel} scope: no supported technologies detected in ${operation.path}.`);
+      console.log(`Project scope: no supported technologies detected in ${operation.path}.`);
       console.log("Run inside a project root with a recognizable stack (package.json, pyproject.toml, Cargo.toml, etc.).");
       return;
     }
 
     if (result.detected.length > 0) {
-      console.log(`${scopeLabel} scope: detected technologies (${result.detected.length}):`);
+      console.log(`Project scope: detected technologies (${result.detected.length}):`);
       for (const tech of result.detected) {
         console.log(`  - ${tech.name}`);
       }
     } else if (result.isFrontend) {
-      console.log(`${scopeLabel} scope: detected a generic web frontend project (from file extensions).`);
+      console.log(`Project scope: detected a generic web frontend project (from file extensions).`);
     }
 
     if (result.combos.length > 0) {
-      console.log(`\n${scopeLabel} scope: detected combos (${result.combos.length}):`);
+      console.log(`\nProject scope: detected combos (${result.combos.length}):`);
       for (const combo of result.combos) {
         console.log(`  - ${combo.name}`);
       }
     }
 
     if (result.skills.length === 0) {
-      console.log(`\n${scopeLabel} scope: no matching shipped skills found for the detected stack.`);
+      console.log(`\nProject scope: no matching shipped skills found for the detected stack.`);
       return;
     }
 
-    console.log(`\n${scopeLabel} scope: matching shipped Codex Kit skills (${result.skills.length}):`);
+    console.log(`\nProject scope: matching shipped Codex Kit skills (${result.skills.length}):`);
     for (const skill of result.skills) {
       console.log(`  - ${skill.name} [${skill.category}]`);
       console.log(`      ← ${skill.sources.join(", ")}`);
     }
 
     if (result.unknown.length > 0) {
-      console.log(`\n${scopeLabel} scope: skill names without a shipped match: ${result.unknown.join(", ")}`);
+      console.log(`\nProject scope: skill names without a shipped match: ${result.unknown.join(", ")}`);
     }
 
     if (operation.dryRun) {
-      console.log(`\n${scopeLabel} scope: --dry-run, nothing installed.`);
+      console.log(`\nProject scope: --dry-run, nothing installed.`);
       console.log(`Would install into ${result.installTargetDir}`);
       return;
     }
 
     console.log(
-      `\n${scopeLabel} scope: wrote ${result.totalWritten} skill files into ${result.installTargetDir}`
+      `\nProject scope: wrote ${result.totalWritten} skill files into ${result.installTargetDir}`
     );
     if (result.totalSkipped > 0) {
-      console.log(`${scopeLabel} scope: skipped ${result.totalSkipped} existing skill files (use --force to overwrite)`);
+      console.log(`Project scope: skipped ${result.totalSkipped} existing skill files (use --force to overwrite)`);
     }
     return;
   }
+
 
   if (operation.action === "status") {
     const result = await statusProject({
