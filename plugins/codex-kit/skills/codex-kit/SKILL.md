@@ -29,7 +29,7 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - `npx @longkunz/codex-kit doctor` to validate the project, plugin marketplace, bundled hooks/MCP, and manifest consistency.
 - `npx @longkunz/codex-kit install --target skills --scope local` to copy the shipped Codex Kit skills into local Codex.
 - `npx @longkunz/codex-kit sync --target skills --scope local` to overwrite local Codex skills with the shipped Codex Kit version.
-- `npx @longkunz/codex-kit remove --target skills --scope local --skills clean-code,planning` to remove specific Codex Kit skills from local Codex.
+- `npx @longkunz/codex-kit remove --target skills --scope local --skills ,planning` to remove specific Codex Kit skills from local Codex.
 - `npx @longkunz/codex-kit autoskills` to auto-detect the project's tech stack and install matching shipped skills into `.agents/skills/`.
 - `npx @longkunz/codex-kit autoskills --scope local` to install matching shipped skills into `${CODEX_HOME:-~/.codex}/skills` instead.
 - `npx @longkunz/codex-kit autoskills --dry-run` to preview the detected stack and matching skills without writing any files.

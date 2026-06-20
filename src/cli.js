@@ -15,7 +15,10 @@ import {
   updateProject
 } from "./lib/kit.js";
 import {
+  getCoreSkills,
   getSelectedShippedSkills,
+  getSkillByName,
+  getSkillsForProfile,
   groupSkillsByCategory,
   searchShippedSkills
 } from "./lib/skills.js";
@@ -134,7 +137,8 @@ function parseArgs(argv) {
     path: process.cwd(),
     target: undefined,
     scope: undefined,
-    query: undefined
+    query: undefined,
+    profile: undefined
   };
 
   for (let index = 0; index < rest.length; index += 1) {
@@ -208,6 +212,13 @@ function parseArgs(argv) {
       }
       options.query = value;
       index += 1;
+    } else if (arg === "--profile") {
+      const value = rest[index + 1];
+      if (!value) {
+        throw new Error("Missing value for --profile");
+      }
+      options.profile = value.trim();
+      index += 1;
     } else if (arg === "-h" || arg === "--help") {
       options.help = true;
     } else {
@@ -227,7 +238,8 @@ function buildOperation(action, options, overrides = {}) {
     target: overrides.target,
     scope: overrides.scope ?? options.scope ?? "project",
     query: overrides.query ?? options.query,
-    skills: options.skills,
+    skills: overrides.skills ?? options.skills,
+    profile: overrides.profile ?? options.profile,
     path: options.path,
     codexHome: options.codexHome,
     force: options.force,
@@ -248,6 +260,11 @@ function buildOperation(action, options, overrides = {}) {
 function normalizeOperation(options) {
   switch (options.command) {
     case "install":
+      if (options.positionals[0] === "skill" && options.positionals.length >= 2) {
+        const skillName = options.positionals[1];
+        options.positionals = options.positionals.slice(2);
+        return buildOperation("install", options, { target: "skills", skills: [skillName] });
+      }
       return buildOperation("install", options, { target: options.target || "project" });
     case "sync":
     case "list":
@@ -355,15 +372,6 @@ function validateOperation(operation) {
     if (operation.action === "list" && operation.query) {
       // query on project-scope list is fine, no extra check needed
     }
-    if (
-      ["install", "sync"].includes(operation.action) &&
-      operation.scope === "project" &&
-      operation.skills.length > 0
-    ) {
-      throw new Error(
-        `\`${operation.action} --target skills\` installs the full project skill bundle. Use \`--skills ...\` only with targeted installs.`
-      );
-    }
   }
 
   if ((operation.target === "plugin" || operation.target === "project") && operation.scope !== "project") {
@@ -409,16 +417,32 @@ async function getPackageVersion() {
   return packageJson.version;
 }
 
-function printCatalog(skills, installCommandPrefix) {
-  const grouped = groupSkillsByCategory(skills);
+function formatProfiles(skill) {
+  if (skill.tier === "core") return "core";
+  if (!skill.profiles || skill.profiles.length === 0) return "-";
+  return skill.profiles.join(",");
+}
 
-  console.log(`Project scope: shipped Codex Kit skills: ${skills.length}`);
-  for (const group of grouped) {
-    console.log(`\n${group.category}`);
-    for (const skill of group.skills) {
-      console.log(`  - ${skill.name}: ${skill.summary}`);
-      console.log(`    install: ${installCommandPrefix} ${skill.name}`);
-    }
+function printCatalog(skills, installCommandPrefix) {
+  console.log(`Project scope: shipped Codex Kit skills: ${skills.length}\n`);
+  
+  const nameWidth = Math.max(20, ...skills.map(s => s.name.length)) + 2;
+  const tierWidth = 10;
+  
+  console.log(
+    "NAME".padEnd(nameWidth) + 
+    "TIER".padEnd(tierWidth) + 
+    "PROFILE"
+  );
+  
+  for (const skill of skills) {
+    const tierStr = skill.tier || "optional";
+    const profileStr = formatProfiles(skill);
+    console.log(
+      skill.name.padEnd(nameWidth) + 
+      tierStr.padEnd(tierWidth) + 
+      profileStr
+    );
   }
 }
 
@@ -434,6 +458,16 @@ function printSearchResults(query, skills, installCommandPrefix) {
     console.log(`  ${skill.summary}`);
     console.log(`  install: ${installCommandPrefix} ${skill.name}`);
   }
+}
+
+async function resolveRequestedSkills(operation, skillsRoot) {
+  if (operation.skills && operation.skills.length > 0) {
+    return Promise.all(operation.skills.map((name) => getSkillByName(skillsRoot, name)));
+  }
+  if (operation.profile) {
+    return getSkillsForProfile(skillsRoot, operation.profile);
+  }
+  return null;
 }
 
 export async function runCli(argv) {
@@ -500,6 +534,7 @@ export async function runCli(argv) {
   }
 
   if (operation.action === "install" && operation.target === "project") {
+    const selectedSkills = await resolveRequestedSkills(operation, skillsRoot);
     const result = await initProject({
       targetDir: operation.path,
       templateRoot,
@@ -507,7 +542,8 @@ export async function runCli(argv) {
       version,
       installPlugin: operation.installPlugin,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
     let hooksResult = null;
     if (operation.includeHooks) {
@@ -556,6 +592,7 @@ export async function runCli(argv) {
   }
 
   if (operation.action === "sync" && operation.target === "project") {
+    const selectedSkills = await resolveRequestedSkills(operation, skillsRoot);
     const result = await updateProject({
       targetDir: operation.path,
       templateRoot,
@@ -563,7 +600,8 @@ export async function runCli(argv) {
       version,
       installPlugin: operation.installPlugin,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
     if (!operation.quiet) {
       console.log(
@@ -799,12 +837,14 @@ export async function runCli(argv) {
   }
 
   if (operation.action === "install" && operation.target === "skills") {
+    const selectedSkills = await resolveRequestedSkills(operation, skillsRoot);
     const result = await installProjectSkills({
       targetDir: operation.path,
       templateRoot,
       version,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
     if (!operation.quiet) {
       console.log(
@@ -820,12 +860,14 @@ export async function runCli(argv) {
   }
 
   if (operation.action === "sync" && operation.target === "skills") {
+    const selectedSkills = await resolveRequestedSkills(operation, skillsRoot);
     const result = await syncProjectSkills({
       targetDir: operation.path,
       templateRoot,
       version,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
     if (!operation.quiet) {
       console.log(
@@ -841,6 +883,7 @@ export async function runCli(argv) {
   }
 
   if (operation.action === "setup-codex") {
+    const selectedSkills = await resolveRequestedSkills(operation, skillsRoot);
     const initResult = await initProject({
       targetDir: operation.path,
       templateRoot,
@@ -848,14 +891,16 @@ export async function runCli(argv) {
       version,
       installPlugin: true,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
     const skillsResult = await installProjectSkills({
       targetDir: operation.path,
       templateRoot,
       version,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
     const memoriesResult = operation.enableMemories
       ? await installLocalMemories({
@@ -898,6 +943,7 @@ export async function runCli(argv) {
   }
 
   if (operation.action === "sync-codex") {
+    const selectedSkills = await resolveRequestedSkills(operation, skillsRoot);
     const updateResult = await updateProject({
       targetDir: operation.path,
       templateRoot,
@@ -905,14 +951,16 @@ export async function runCli(argv) {
       version,
       installPlugin: true,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
     const skillsResult = await syncProjectSkills({
       targetDir: operation.path,
       templateRoot,
       version,
       force: operation.force,
-      dryRun: operation.dryRun
+      dryRun: operation.dryRun,
+      selectedSkills
     });
 
     if (!operation.quiet) {

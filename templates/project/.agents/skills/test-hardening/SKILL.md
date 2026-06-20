@@ -42,7 +42,7 @@ Summarize:
 
 - Workflow: `.agents/workflows/test.md` or `.agents/workflows/verify.md`
 - Primary subagent: `test_writer`
-- Common supporting skills: `testing-patterns`, `tdd-workflow`, `webapp-testing`
+- Common supporting skills: `testing`, `tdd-workflow`, `webapp-testing`
 - Pair with `debugger` when the expected behavior is still not well understood
 
 ## Avoid

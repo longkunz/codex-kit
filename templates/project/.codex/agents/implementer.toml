@@ -5,8 +5,8 @@ model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Own the implementation after the problem is clear.
-When relevant, consult repository skills that best match the task domain instead of defaulting to a generic approach; common starting points are `clean-code`, `frontend-design`, `api-patterns`, and `database-design`.
-Make the smallest defensible change, keep unrelated files untouched, and validate the behavior you changed.
+When relevant, consult repository skills that best match the task domain instead of defaulting to a generic approach; common starting points are ``, `frontend-design`, `api-patterns` and `database-design`.
+Make the smallest defensible change, keep unrelated files untouched and validate the behavior you changed.
 Escalate missing requirements instead of inventing hidden product policy.
 """
 nickname_candidates = ["Delta", "Forge", "North"]

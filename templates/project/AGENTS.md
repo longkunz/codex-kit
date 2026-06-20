@@ -32,22 +32,22 @@ When delegating to a subagent, include the preferred skill set in the task hando
 - Use `.agents/workflows/figma-to-code.md` when the task is to implement an existing Figma frame or flow into the current codebase.
 - Prefer the `implementer` subagent for scoped code changes after the task is clear.
 - Use `frontend_specialist`, `backend_specialist`, `database_architect`, or `mobile_developer` when domain-specific implementation work is clearly separated.
-- Load `clean-code`, `frontend-design`, `api-patterns`, `database-design`, or `nodejs-best-practices` only when they fit the stack.
+- Load `frontend-design`, `api-patterns`, `database-design`, or `nodejs-best-practices` only when they fit the stack.
   Preferred pairings:
-  `frontend_specialist` -> `clean-code`, `frontend-design`, `nextjs-react-expert`, `tailwind-patterns`, `web-design-guidelines`
-  `frontend_specialist` for Figma implementation -> `clean-code`, `frontend-design`, `web-design-guidelines`
-  `backend_specialist` -> `clean-code`, `api-patterns`, `nodejs-best-practices`, `python-patterns`, `database-design`
-  `database_architect` -> `database-design`, `clean-code`
-  `mobile_developer` -> `mobile-design`, `clean-code`
+  `frontend_specialist` -> `frontend-design`, `nextjs-react-expert`, `tailwind-patterns`, `web-design-guidelines`
+  `frontend_specialist` for Figma implementation -> `frontend-design`, `web-design-guidelines`
+  `backend_specialist` -> `api-patterns`, `nodejs-best-practices`, `python-patterns`, `database-design`
+  `database_architect` -> `database-design`
+  `mobile_developer` -> `mobile-design`
 
 ### Debugging
 
 - Use `.agents/workflows/debug.md` for bug investigation and root-cause isolation.
 - Prefer the `debugger` subagent for evidence gathering before making changes.
-- Load `bug-hunt`, `debugging`, `systematic-debugging`, and optionally `testing-patterns` to confirm the failure mode.
+- Load `debugging`, and optionally `testing` to confirm the failure mode.
   Preferred pairings:
-  `debugger` -> `bug-hunt`, `debugging`, `systematic-debugging`, `testing-patterns`
-  `explorer` -> `repo-onboarding`, `architecture`, `plan-writing`, `systematic-debugging`
+  `debugger` -> `debugging`, `testing`
+  `explorer` -> `repo-onboarding`, `architecture`, `planning`, `debugging`
 
 ### Review and Documentation
 
@@ -55,13 +55,13 @@ When delegating to a subagent, include the preferred skill set in the task hando
 - Use the `reviewer` subagent for correctness, security, and missing tests.
 - Use the `docs_researcher` subagent when framework or API behavior must be verified.
 - Use `security_auditor`, `documentation_writer`, `performance_optimizer`, or `seo_specialist` when the task has a specialized review or improvement axis.
-- Load `high-signal-review`, `code-review`, `code-review-checklist`, `docs-shipper`, `documentation-templates`, `mcp-onboarding`, or `mcp-builder` as needed.
+- Load `code-review`, `documentation`, `mcp-onboarding`, or `mcp-builder` as needed.
   Preferred pairings:
-  `reviewer` -> `high-signal-review`, `code-review`, `code-review-checklist`, `release-readiness`
-  `security_auditor` -> `vulnerability-scanner`, `red-team-tactics`, `api-patterns`
+  `reviewer` -> `code-review`, `release-deployment`
+  `security_auditor` -> `security-review`, `red-team-tactics`, `api-patterns`
   `performance_optimizer` -> `performance-profiling`, `nextjs-react-expert`
-  `documentation_writer` -> `docs-shipper`, `documentation-templates`
-  `docs_researcher` -> `mcp-onboarding`, `documentation-templates`, `mcp-builder`
+  `documentation_writer` -> `documentation`
+  `docs_researcher` -> `mcp-onboarding`, `documentation`, `mcp-builder`
   `seo_specialist` -> `seo-fundamentals`, `geo-fundamentals`, `web-design-guidelines`
 
 ### Validation and Release
@@ -72,31 +72,31 @@ When delegating to a subagent, include the preferred skill set in the task hando
 - Use `.agents/workflows/deploy.md` for deployment preparation or execution.
 - Use `.agents/workflows/ship.md` when preparing a merge, release, or deployment summary.
 - Use `devops_engineer` for CI, environment, and deployment-specific work.
-- Load `test-hardening`, `docs-shipper`, `mcp-onboarding`, and `release-readiness` when the task affects rollout, migrations, verification depth, or deploy risk.
+- Load `test-hardening`, `documentation`, `mcp-onboarding`, and `release-deployment` when the task affects rollout, migrations, verification depth, or deploy risk.
   Preferred pairings:
-  `test_writer` -> `test-hardening`, `testing-patterns`, `tdd-workflow`, `webapp-testing`
-  `devops_engineer` -> `deployment-procedures`, `server-management`, `release-readiness`, `bash-linux`
+  `test_writer` -> `test-hardening`, `testing`, `tdd-workflow`, `webapp-testing`
+  `devops_engineer` -> `release-deployment`, `server-management`, `release-deployment`, `bash-linux`
 
 ## Subagent Matrix
 
 | Agent | Purpose | Default Mode | Typical Skills |
 | --- | --- | --- | --- |
-| `planner` | Break work into decisions, steps, and risks | read-heavy | `planning`, `plan-writing`, `architecture` |
-| `explorer` | Map unfamiliar code paths and dependency flow | read-only | `repo-onboarding`, `architecture`, `plan-writing`, `systematic-debugging` |
-| `implementer` | Make the smallest defensible code change | workspace-write | `clean-code`, `frontend-design`, `api-patterns`, `database-design` |
+| `planner` | Break work into decisions, steps, and risks | read-heavy | `planning`, `architecture` |
+| `explorer` | Map unfamiliar code paths and dependency flow | read-only | `repo-onboarding`, `architecture`, `planning`, `debugging` |
+| `implementer` | Make the smallest defensible code change | workspace-write | `frontend-design`, `api-patterns`, `database-design` |
 | `frontend_specialist` | Build or refactor frontend UI and interaction layers | workspace-write | `frontend-design`, `nextjs-react-expert`, `tailwind-patterns` |
 | `backend_specialist` | Implement APIs, services, and server-side logic | workspace-write | `api-patterns`, `nodejs-best-practices`, `python-patterns` |
 | `database_architect` | Design schemas, migrations, and query strategy | workspace-write | `database-design` |
 | `mobile_developer` | Build mobile-specific UX and application flows | workspace-write | `mobile-design` |
-| `debugger` | Reproduce issues and isolate the failure mode | read-heavy first | `bug-hunt`, `debugging`, `systematic-debugging`, `testing-patterns` |
+| `debugger` | Reproduce issues and isolate the failure mode | read-heavy first | `debugging`, `testing` |
 | `performance_optimizer` | Improve measured bottlenecks and runtime speed | workspace-write | `performance-profiling`, `nextjs-react-expert` |
-| `reviewer` | Find correctness, security, and regression risks | read-only | `high-signal-review`, `code-review`, `release-readiness` |
-| `security_auditor` | Review exploitability, auth, and risky code paths | read-only | `vulnerability-scanner`, `red-team-tactics`, `api-patterns` |
-| `docs_researcher` | Verify external APIs and framework behavior | read-only | `mcp-onboarding`, `documentation-templates`, `mcp-builder` |
-| `documentation_writer` | Write setup guides and technical handoff docs | workspace-write | `docs-shipper`, `documentation-templates` |
+| `reviewer` | Find correctness, security, and regression risks | read-only | `code-review`, `release-deployment` |
+| `security_auditor` | Review exploitability, auth, and risky code paths | read-only | `security-review`, `red-team-tactics`, `api-patterns` |
+| `docs_researcher` | Verify external APIs and framework behavior | read-only | `mcp-onboarding`, `documentation`, `mcp-builder` |
+| `documentation_writer` | Write setup guides and technical handoff docs | workspace-write | `documentation` |
 | `seo_specialist` | Improve SEO, GEO, and content discoverability | workspace-write | `seo-fundamentals`, `geo-fundamentals` |
-| `devops_engineer` | Own CI, deploy, env, and operational changes | workspace-write | `deployment-procedures`, `server-management`, `release-readiness` |
-| `test_writer` | Add or improve tests around known behavior | workspace-write | `test-hardening`, `testing-patterns`, `tdd-workflow`, `webapp-testing` |
+| `devops_engineer` | Own CI, deploy, env, and operational changes | workspace-write | `release-deployment`, `server-management`, `release-deployment` |
+| `test_writer` | Add or improve tests around known behavior | workspace-write | `test-hardening`, `testing`, `tdd-workflow`, `webapp-testing` |
 
 ## Skill Contract
 
@@ -168,6 +168,10 @@ Choose the simplest solution that correctly satisfies the requirement.
 Avoid premature abstractions, speculative generalization, and unnecessary dependencies.
 If the scope is unclear, implement the minimal version and iterate.
 
+### Clear and Meaningful Names
+
+Use descriptive naming for all variables, functions, and files. Avoid cryptic abbreviations.
+
 ### Surgical Changes
 
 Change only what is necessary. Leave unrelated code, formatting, and naming untouched.
@@ -178,6 +182,7 @@ Each change should be independently reviewable and limited to the stated task.
 Keep the original goal in view throughout the task.
 Stop and confirm with the user when scope expands or the approach shifts significantly.
 Prefer incremental, verifiable progress over large opaque rewrites.
+
 
 ### Verify Before Handing Off
 

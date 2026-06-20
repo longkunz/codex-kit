@@ -146,7 +146,7 @@ export const SKILLS_MAP = [
       packages: ["typescript"],
       configFiles: ["tsconfig.json"]
     },
-    skills: ["lint-and-validate", "clean-code"]
+    skills: ["lint-and-validate"]
   },
   {
     id: "react-native",
@@ -180,7 +180,7 @@ export const SKILLS_MAP = [
         ".node-version"
       ]
     },
-    skills: ["nodejs-best-practices", "clean-code"]
+    skills: ["nodejs-best-practices"]
   },
   {
     id: "express",
@@ -212,7 +212,7 @@ export const SKILLS_MAP = [
     detect: {
       configFiles: ["pyproject.toml", "requirements.txt", "setup.py", "setup.cfg", "Pipfile"]
     },
-    skills: ["python-patterns", "clean-code"]
+    skills: ["python-patterns"]
   },
   {
     id: "fastapi",
@@ -252,13 +252,13 @@ export const SKILLS_MAP = [
     id: "rust",
     name: "Rust",
     detect: { configFiles: ["Cargo.toml", "Cargo.lock"] },
-    skills: ["rust-pro", "clean-code"]
+    skills: ["rust-pro"]
   },
   {
     id: "go",
     name: "Go",
     detect: { configFiles: ["go.mod", "go.work"] },
-    skills: ["api-patterns", "clean-code"]
+    skills: ["api-patterns"]
   },
   {
     id: "prisma",
@@ -321,7 +321,7 @@ export const SKILLS_MAP = [
         "playwright.config.mjs"
       ]
     },
-    skills: ["webapp-testing", "testing-patterns"]
+    skills: ["webapp-testing", "testing"]
   },
   {
     id: "cypress",
@@ -330,7 +330,7 @@ export const SKILLS_MAP = [
       packages: ["cypress"],
       configFiles: ["cypress.config.ts", "cypress.config.js"]
     },
-    skills: ["webapp-testing", "testing-patterns"]
+    skills: ["webapp-testing", "testing"]
   },
   {
     id: "vitest",
@@ -339,7 +339,7 @@ export const SKILLS_MAP = [
       packages: ["vitest"],
       configFiles: ["vitest.config.ts", "vitest.config.js", "vitest.config.mts"]
     },
-    skills: ["testing-patterns", "tdd-workflow"]
+    skills: ["testing", "tdd-workflow"]
   },
   {
     id: "jest",
@@ -348,13 +348,13 @@ export const SKILLS_MAP = [
       packages: ["jest", "@jest/core"],
       configFiles: ["jest.config.js", "jest.config.ts", "jest.config.mjs"]
     },
-    skills: ["testing-patterns", "tdd-workflow"]
+    skills: ["testing", "tdd-workflow"]
   },
   {
     id: "mocha",
     name: "Mocha",
     detect: { packages: ["mocha"] },
-    skills: ["testing-patterns", "tdd-workflow"]
+    skills: ["testing", "tdd-workflow"]
   },
   {
     id: "pytest",
@@ -365,7 +365,7 @@ export const SKILLS_MAP = [
         patterns: ["pytest"]
       }
     },
-    skills: ["testing-patterns", "tdd-workflow"]
+    skills: ["testing", "tdd-workflow"]
   },
   {
     id: "eslint",
@@ -418,7 +418,7 @@ export const SKILLS_MAP = [
       packages: ["vercel", "@astrojs/vercel"],
       configFiles: ["vercel.json", ".vercel"]
     },
-    skills: ["deployment-procedures"]
+    skills: ["release-deployment"]
   },
   {
     id: "cloudflare",
@@ -427,7 +427,7 @@ export const SKILLS_MAP = [
       packages: ["wrangler", "@cloudflare/workers-types", "@astrojs/cloudflare"],
       configFiles: ["wrangler.toml", "wrangler.json", "wrangler.jsonc"]
     },
-    skills: ["deployment-procedures"]
+    skills: ["release-deployment"]
   },
   {
     id: "docker",
@@ -441,7 +441,7 @@ export const SKILLS_MAP = [
         "compose.yaml"
       ]
     },
-    skills: ["deployment-procedures", "server-management"]
+    skills: ["release-deployment", "server-management"]
   },
   {
     id: "terraform",
@@ -455,7 +455,7 @@ export const SKILLS_MAP = [
         "outputs.tf"
       ]
     },
-    skills: ["deployment-procedures", "server-management"]
+    skills: ["release-deployment", "server-management"]
   },
   {
     id: "kubernetes",
@@ -469,7 +469,7 @@ export const SKILLS_MAP = [
         "Chart.yaml"
       ]
     },
-    skills: ["server-management", "deployment-procedures"]
+    skills: ["server-management", "release-deployment"]
   },
   {
     id: "mcp",
@@ -542,7 +542,7 @@ export const COMBO_SKILLS_MAP = [
     id: "nextjs-vercel",
     name: "Next.js + Vercel",
     requires: ["nextjs", "vercel"],
-    skills: ["deployment-procedures"]
+    skills: ["release-deployment"]
   },
   {
     id: "nextjs-playwright",

@@ -28,8 +28,8 @@ If those conditions are not met, move to `brainstorm` or `plan` first.
 
 ## Typical Skill Pairings
 
-- `clean-code` for scoped implementation quality
-- `testing-patterns` or `tdd-workflow` when tests should be added alongside code
+- `frontend-design` for scoped implementation quality
+- `testing` or `tdd-workflow` when tests should be added alongside code
 - `frontend-design` for UI-heavy work
 - `api-patterns` or `database-design` for server-side structure changes
 

@@ -5,7 +5,7 @@ model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Write the smallest set of tests that proves the intended behavior.
-When relevant, consult repository skills such as `test-hardening`, `testing-patterns`, `tdd-workflow`, `webapp-testing`, and `clean-code`.
+When relevant, consult repository skills such as `test-hardening`, `testing`, `tdd-workflow`, `webapp-testing` and ``.
 Prefer targeted coverage around the changed paths over broad rewrites.
 If behavior is ambiguous, ask for clarification before encoding the wrong rule in tests.
 """

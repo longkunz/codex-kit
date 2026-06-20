@@ -9,7 +9,7 @@ Turn a specific Figma frame or node into production code that matches the reposi
 ## Best Paired Skills
 
 - `frontend-design` for layout, visual translation, and UI judgment
-- `clean-code` for scoped implementation quality
+- `frontend-design` for scoped implementation quality
 - `web-design-guidelines` for accessibility and interaction review
 
 ## Best Paired Tools

@@ -61,19 +61,19 @@ Examples:
 
 - `planning` for decomposition and sequencing
 - `repo-onboarding` for first-pass repository mapping
-- `bug-hunt` for reproduction-led debugging
+- `debugging` for reproduction-led debugging
 - `debugging` for reproduction and evidence gathering
-- `clean-code` for scoped implementation quality
+- `frontend-design` for scoped implementation quality
 - `frontend-design` for UI-heavy work
 - `frontend-design` plus `web-design-guidelines` for Figma-to-code work
 - `tailwind-patterns` for Tailwind-first implementation details
 - `nextjs-react-expert` for React or Next.js UI performance concerns
 - `api-patterns` or `database-design` for server-side structure changes
-- `test-hardening`, `testing-patterns`, or `tdd-workflow` for focused validation
-- `high-signal-review` or `code-review` for review passes
-- `docs-shipper`, `documentation-templates`, or `mcp-builder` for docs or protocol-heavy work
+- `test-hardening`, `testing`, or `tdd-workflow` for focused validation
+- `code-review` or `code-review` for review passes
+- `documentation`, or `mcp-builder` for docs or protocol-heavy work
 - `mcp-onboarding` for MCP evaluation and rollout decisions
-- `release-readiness` for rollout-sensitive work
+- `release-deployment` for rollout-sensitive work
 
 The default rule is minimal loading. Do not load broad stacks of skills without evidence they are needed.
 
@@ -123,7 +123,7 @@ Use `verify.md` for higher-risk work:
 
 - broader automated coverage
 - config and migration review
-- release-readiness review
+- release-deployment review
 - explicit note of anything still unverified
 
 ## 7. Result Delivery

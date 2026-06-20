@@ -8,8 +8,11 @@ import {
   writeManifest
 } from "./manifest.js";
 import {
+  getCoreSkills,
   getInstalledShippedSkills,
   getSelectedShippedSkills,
+  getSkillsForProfile,
+  inferInstalledProjectSkills,
   loadSkillTemplates
 } from "./skills.js";
 import { loadTemplateFiles } from "./templates.js";
@@ -118,8 +121,35 @@ function syncPluginManifestVersion(template, version) {
   return { ...template, content, templateHash: sha256(content) };
 }
 
-async function loadManagedTemplates({ templateRoot, pluginRoot, version, includePlugin = false }) {
-  const templates = await loadTemplateFiles(templateRoot);
+function filterSkillTemplates(templates, selectedSkills) {
+  if (!selectedSkills) {
+    return templates;
+  }
+
+  const selectedPaths = new Set();
+  for (const skill of selectedSkills) {
+    selectedPaths.add(normalizePath(skill.installRelativePath));
+  }
+
+  return templates.filter((template) => {
+    const rel = normalizePath(template.relativePath);
+    if (rel.startsWith(`${PROJECT_SHARED_TARGET_ROOT}/`)) {
+      return true;
+    }
+    if (rel.startsWith(`${PROJECT_SKILLS_TARGET_ROOT}/`)) {
+      return [...selectedPaths].some((p) => {
+        const fullP = `${PROJECT_SKILLS_TARGET_ROOT}/${p}`;
+        return rel === fullP || rel.startsWith(`${fullP}/`);
+      });
+    }
+    return true;
+  });
+}
+
+async function loadManagedTemplates({ templateRoot, pluginRoot, version, includePlugin = false, selectedSkills = null }) {
+  let templates = await loadTemplateFiles(templateRoot);
+  templates = filterSkillTemplates(templates, selectedSkills);
+
   if (!includePlugin) {
     return templates;
   }
@@ -149,8 +179,9 @@ async function loadPluginTemplates(pluginRoot, version) {
     .sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
-async function loadProjectSkillsTemplates(templateRoot) {
-  const templates = await loadTemplateFiles(templateRoot);
+async function loadProjectSkillsTemplates(templateRoot, selectedSkills = null) {
+  let templates = await loadTemplateFiles(templateRoot);
+  templates = filterSkillTemplates(templates, selectedSkills);
   return templates
     .filter(
       (template) =>
@@ -541,8 +572,12 @@ export async function initProject({
   version,
   installPlugin = false,
   force = false,
-  dryRun = false
+  dryRun = false,
+  selectedSkills = null
 }) {
+  if (!selectedSkills) {
+    selectedSkills = await getCoreSkills(path.join(templateRoot, ".agents/skills"));
+  }
   let existingManifest = await readManifest(targetDir);
   const rulesMigration = await migrateLegacyRulesPath({ targetDir, force, dryRun });
   if (rulesMigration.migrated) {
@@ -557,7 +592,8 @@ export async function initProject({
     templateRoot,
     pluginRoot,
     version,
-    includePlugin: installPlugin
+    includePlugin: installPlugin,
+    selectedSkills
   });
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
   const result = await writeProjectSubset({
@@ -640,8 +676,15 @@ export async function updateProject({
   version,
   installPlugin = false,
   force = false,
-  dryRun = false
+  dryRun = false,
+  selectedSkills = null
 }) {
+  if (!selectedSkills) {
+    selectedSkills = await inferInstalledProjectSkills(targetDir, path.join(templateRoot, ".agents/skills"));
+    if (selectedSkills.length === 0) {
+      selectedSkills = await getCoreSkills(path.join(templateRoot, ".agents/skills"));
+    }
+  }
   let existingManifest = await readManifest(targetDir);
   if (!existingManifest) {
     throw new Error("No Codex Kit manifest found. Run `codex-kit init` first.");
@@ -661,7 +704,8 @@ export async function updateProject({
     templateRoot,
     pluginRoot,
     version,
-    includePlugin
+    includePlugin,
+    selectedSkills
   });
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
   const result = await writeProjectSubset({
@@ -742,10 +786,14 @@ export async function installProjectSkills({
   templateRoot,
   version,
   force = false,
-  dryRun = false
+  dryRun = false,
+  selectedSkills = null
 }) {
+  if (!selectedSkills) {
+    selectedSkills = await getCoreSkills(path.join(templateRoot, ".agents/skills"));
+  }
   const existingManifest = await readManifest(targetDir);
-  const templates = await loadProjectSkillsTemplates(templateRoot);
+  const templates = await loadProjectSkillsTemplates(templateRoot, selectedSkills);
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
 
   return writeProjectSubset({
@@ -766,10 +814,17 @@ export async function syncProjectSkills({
   templateRoot,
   version,
   force = false,
-  dryRun = false
+  dryRun = false,
+  selectedSkills = null
 }) {
+  if (!selectedSkills) {
+    selectedSkills = await inferInstalledProjectSkills(targetDir, path.join(templateRoot, ".agents/skills"));
+    if (selectedSkills.length === 0) {
+      selectedSkills = await getCoreSkills(path.join(templateRoot, ".agents/skills"));
+    }
+  }
   const existingManifest = await readManifest(targetDir);
-  const templates = await loadProjectSkillsTemplates(templateRoot);
+  const templates = await loadProjectSkillsTemplates(templateRoot, selectedSkills);
   const replacePaths = templates.map((template) => normalizePath(template.relativePath));
 
   return writeProjectSubset({

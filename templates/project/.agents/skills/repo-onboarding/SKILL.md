@@ -36,7 +36,7 @@ Produce an onboarding brief with:
 
 - Workflow: `.agents/workflows/plan.md` or `.agents/workflows/debug.md`
 - Primary subagent: `explorer`
-- Common supporting skills: `architecture`, `plan-writing`, `systematic-debugging`
+- Common supporting skills: `architecture`, `planning`, `debugging`
 - Hand off to `planner` or `implementer` only after the map is concrete enough
 
 ## Avoid

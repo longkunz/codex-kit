@@ -68,7 +68,7 @@ codex-kit list --target skills --query frontend
 codex-kit list --target skills --scope local
 codex-kit list --target plugin
 codex-kit list --target mcp
-codex-kit remove --target skills --scope local --skills clean-code,planning
+codex-kit remove --target skills --scope local --skills ,planning
 codex-kit autoskills
 codex-kit autoskills --scope local
 codex-kit autoskills --dry-run
@@ -101,9 +101,9 @@ codex-kit list --target skills --scope local
 codex-kit list --target mcp
 
 codex-kit install --target skills --scope local
-codex-kit install --target skills --scope local --skills clean-code,planning
-codex-kit sync --target skills --scope local --skills clean-code,planning
-codex-kit remove --target skills --scope local --skills clean-code,planning
+codex-kit install --target skills --scope local --skills ,planning
+codex-kit sync --target skills --scope local --skills ,planning
+codex-kit remove --target skills --scope local --skills ,planning
 
 codex-kit setup-codex
 codex-kit setup-codex --enable-memories
@@ -120,7 +120,7 @@ codex-kit search-skills frontend
 codex-kit list-installed-skills
 codex-kit install-skills
 codex-kit sync-skills
-codex-kit remove-skills --skills clean-code,planning
+codex-kit remove-skills --skills ,planning
 ```
 
 ## Tích hợp Codex

@@ -292,9 +292,9 @@ npx @longkunz/codex-kit install --target skills --scope local --codex-home ~/.co
             ],
             code: `npx @longkunz/codex-kit sync --target skills --scope local
 
-npx @longkunz/codex-kit install --target skills --scope local --skills clean-code,planning
-npx @longkunz/codex-kit sync --target skills --scope local --skills clean-code,planning
-npx @longkunz/codex-kit remove --target skills --scope local --skills clean-code,planning`
+npx @longkunz/codex-kit install --target skills --scope local --skills ,planning
+npx @longkunz/codex-kit sync --target skills --scope local --skills ,planning
+npx @longkunz/codex-kit remove --target skills --scope local --skills ,planning`
           },
           {
             id: "skill-discovery",
@@ -411,10 +411,10 @@ npx @longkunz/codex-kit list --target skills --scope local`
             id: "agent-pairings",
             title: "Common Pairings",
             bullets: [
-              "`planner` pairs well with `planning`, `plan-writing`, and `architecture`.",
-              "`debugger` pairs well with `debugging`, `systematic-debugging`, and `testing-patterns`.",
-              "`reviewer` pairs well with `code-review`, `code-review-checklist`, and `release-readiness`.",
-              "`test-writer` pairs well with `testing-patterns`, `tdd-workflow`, and `webapp-testing`."
+              "`planner` pairs well with `planning`, and `architecture`.",
+              "`debugger` pairs well with `debugging`, and `testing`.",
+              "`reviewer` pairs well with `code-review`, and `release-deployment`.",
+              "`test-writer` pairs well with `testing`, `tdd-workflow`, and `webapp-testing`."
             ]
           }
         ]
@@ -460,7 +460,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Requirements, tradeoffs, ADRs, and system design decisions."
               },
               {
-                title: "behavioral-modes",
+                title: "",
                 description: "Explicit working modes such as brainstorm, implement, debug, or review."
               },
               {
@@ -468,7 +468,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Clarify scope and generate options before implementation."
               },
               {
-                title: "intelligent-routing",
+                title: "",
                 description: "Choose the best specialist skills or subagents for a task."
               },
               {
@@ -476,7 +476,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Bounded delegation and parallel subagent coordination."
               },
               {
-                title: "plan-writing",
+                title: "planning",
                 description: "Written implementation plans, breakdowns, and checklists."
               },
               {
@@ -494,7 +494,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
             title: "Backend & Platform",
             cards: [
               {
-                title: "clean-code",
+                title: "",
                 description: "Pragmatic coding standards and scoped implementation quality."
               },
               {
@@ -562,7 +562,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
             title: "Debugging & Review",
             cards: [
               {
-                title: "bug-hunt",
+                title: "debugging",
                 description: "Disciplined reproduction, scoping, and root-cause isolation."
               },
               {
@@ -570,7 +570,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Evidence-based debugging before changing code."
               },
               {
-                title: "systematic-debugging",
+                title: "debugging",
                 description: "Structured 4-phase debugging with explicit hypotheses."
               },
               {
@@ -578,11 +578,11 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Patch and branch review for correctness and regressions."
               },
               {
-                title: "code-review-checklist",
+                title: "code-review",
                 description: "Supplemental prompts and checks during code review."
               },
               {
-                title: "high-signal-review",
+                title: "code-review",
                 description: "Findings-first review output focused on real risk."
               }
             ]
@@ -604,7 +604,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Strengthen weak or flaky tests around critical behavior."
               },
               {
-                title: "testing-patterns",
+                title: "testing",
                 description: "Unit, integration, and mocking strategies."
               },
               {
@@ -612,7 +612,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Browser testing, deep audits, and Playwright-style checks."
               },
               {
-                title: "release-readiness",
+                title: "release-deployment",
                 description: "Higher-confidence validation for rollout and operational risk."
               }
             ]
@@ -626,15 +626,15 @@ npx @longkunz/codex-kit list --target skills --scope local`
                 description: "Work with `.docx` documents where formatting fidelity matters."
               },
               {
-                title: "docs-shipper",
+                title: "documentation",
                 description: "Ship docs that match real product behavior and commands."
               },
               {
-                title: "documentation-templates",
+                title: "documentation",
                 description: "README, API, and technical documentation structure guidance."
               },
               {
-                title: "deployment-procedures",
+                title: "release-deployment",
                 description: "Safe deployment principles, verification, and rollback thinking."
               },
               {
@@ -652,7 +652,7 @@ npx @longkunz/codex-kit list --target skills --scope local`
             title: "Security, Performance & Discoverability",
             cards: [
               {
-                title: "vulnerability-scanner",
+                title: "security-review",
                 description: "OWASP-aware vulnerability analysis and attack-surface review."
               },
               {
@@ -1003,7 +1003,7 @@ python3 .agents/.shared/ui-ux-pro-max/scripts/search.py "fintech landing" --doma
         ]
       },
       {
-        slug: "systematic-debugging",
+        slug: "debugging",
         section: "Guide",
         title: "Systematic Debugging",
         summary: "Move from symptom to confirmed failure mode before changing code.",
@@ -1281,7 +1281,7 @@ codex-kit list --target skills --query frontend
 codex-kit list --target skills --scope local
 codex-kit list --target plugin
 codex-kit list --target mcp
-codex-kit remove --target skills --scope local --skills clean-code,planning
+codex-kit remove --target skills --scope local --skills ,planning
 codex-kit setup-codex
 codex-kit sync-codex
 codex-kit status`
@@ -1322,7 +1322,7 @@ codex-kit search-skills frontend
 codex-kit list-installed-skills
 codex-kit install-skills
 codex-kit sync-skills
-codex-kit remove-skills --skills clean-code,planning`
+codex-kit remove-skills --skills ,planning`
           },
           {
             id: "options",
@@ -1347,12 +1347,12 @@ codex-kit list --target mcp
 
 codex-kit setup-codex --path ./my-project
 codex-kit setup-codex --codex-home ~/.codex
-codex-kit setup-codex --skills clean-code,planning
+codex-kit setup-codex --skills ,planning
 codex-kit sync-codex
-codex-kit sync-codex --skills clean-code,planning
+codex-kit sync-codex --skills ,planning
 
 codex-kit list --target skills
-codex-kit list --target skills --skills clean-code,planning
+codex-kit list --target skills --skills ,planning
 codex-kit list --target skills --query frontend
 codex-kit list --target skills --scope local
 codex-kit list --target skills --scope local --codex-home ~/.codex
@@ -1363,10 +1363,10 @@ codex-kit update --dry-run
 codex-kit update --install-plugin
 
 codex-kit install --target skills --scope local --codex-home ~/.codex
-codex-kit install --target skills --scope local --skills clean-code,planning
+codex-kit install --target skills --scope local --skills ,planning
 codex-kit install --target skills --scope local --force
-codex-kit sync --target skills --scope local --skills clean-code,planning
-codex-kit remove --target skills --scope local --skills clean-code,planning
+codex-kit sync --target skills --scope local --skills ,planning
+codex-kit remove --target skills --scope local --skills ,planning
 
 codex-kit status --path ./my-project`
           },

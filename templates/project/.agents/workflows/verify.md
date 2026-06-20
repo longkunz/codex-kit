@@ -9,9 +9,9 @@ Establish higher confidence than `check` for changes that are broad, risky, or c
 ## Recommended Skill Bundles
 
 - `test-hardening` when validation depends on stronger automated proof
-- `docs-shipper` when the change must ship with accurate operational docs
+- `documentation` when the change must ship with accurate operational docs
 - `mcp-onboarding` when rollout depends on an external MCP server
-- `release-readiness` for cross-cutting release risk
+- `release-deployment` for cross-cutting release risk
 
 ## Default Checks
 
@@ -23,7 +23,7 @@ Establish higher confidence than `check` for changes that are broad, risky, or c
    - background jobs
    - external integrations
    - schema compatibility
-5. Produce a concise release-readiness summary.
+5. Produce a concise release-deployment summary.
 
 ## When To Use
 
