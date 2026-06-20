@@ -24,15 +24,15 @@ The goal is to keep the system small, composable, and explicit. Skills provide k
 ├── AGENT_FLOW.md
 ├── .agents/
 │   ├── skills/
-│   │   ├── clean-code/
+│   │   ├── /
 │   │   ├── code-review/
 │   │   ├── debugging/
 │   │   ├── frontend-design/
 │   │   ├── api-patterns/
 │   │   ├── database-design/
 │   │   ├── planning/
-│   │   ├── release-readiness/
-│   │   └── testing-patterns/
+│   │   ├── release-deployment/
+│   │   └── testing/
 │   ├── .shared/
 │   │   └── ui-ux-pro-max/
 │   │       ├── data/

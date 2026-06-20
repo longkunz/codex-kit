@@ -8,10 +8,10 @@ Move from symptom to confirmed failure mode before changing code.
 
 ## Recommended Skill Bundle
 
-- `bug-hunt` for investigation discipline and proof requirements
+- `debugging` for investigation discipline and proof requirements
 - `debugging` for evidence gathering
-- `systematic-debugging` when multiple hypotheses compete
-- `testing-patterns` when the bug should end in a regression test
+- `debugging` when multiple hypotheses compete
+- `testing` when the bug should end in a regression test
 
 ## Process
 
@@ -42,4 +42,4 @@ Move from symptom to confirmed failure mode before changing code.
 - do not jump straight to code changes
 - prefer a small fix for the confirmed bug over a speculative rewrite
 - if reproduction is impossible, say what signal is missing
-- if a fix lands, use the closest verification path from `bug-hunt/verify.md`
+- if a fix lands, use the closest verification path from `debugging/verify.md`

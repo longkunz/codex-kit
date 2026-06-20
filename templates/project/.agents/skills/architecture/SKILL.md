@@ -27,7 +27,7 @@ description: Architectural decision-making framework. Requirements analysis, tra
 |-------|---------|
 | `$database-design` | Database schema design |
 | `$api-patterns` | API design patterns |
-| `$deployment-procedures` | Deployment architecture |
+| `$release-deployment` | Deployment architecture |
 
 ---
 

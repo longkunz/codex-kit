@@ -9,6 +9,8 @@ import {
 } from "./manifest.js";
 import { loadTemplateFiles } from "./templates.js";
 import { statusLocalMemories } from "./memories.js";
+import { readdir } from "node:fs/promises";
+import { CANONICAL_CATALOG } from "./skills.js";
 
 const PLUGIN_TARGET_ROOT = ".agents/plugins/codex-kit";
 const MARKETPLACE_PATH = ".agents/plugins/marketplace.json";
@@ -92,7 +94,7 @@ function createReporter() {
 }
 
 function hasFrontmatter(content) {
-  return /^---\n[\s\S]*?\n---/.test(content);
+  return /^---\r?\n[\s\S]*?\r?\n---/.test(content);
 }
 
 function tomlLooksParseable(content) {
@@ -260,30 +262,82 @@ async function validateAgentsMd(targetDir, reporter) {
   }
 }
 
-async function validateSkills(targetDir, reporter) {
+async function validateSkills(targetDir, templateRoot, reporter) {
   const skillsDir = path.join(targetDir, ".agents/skills");
   if (!(await pathExists(skillsDir))) {
     reporter.fail("skills", ".agents/skills is missing", "skills");
     return;
   }
-  const skillFiles = (await walkFiles(skillsDir)).filter(
-    (file) => path.basename(file) === "SKILL.md"
-  );
-  if (skillFiles.length === 0) {
-    reporter.fail("skills", "No SKILL.md files found under .agents/skills", "skills");
-    return;
-  }
-  const missingFrontmatter = [];
-  for (const file of skillFiles) {
-    if (!hasFrontmatter(await readText(file))) {
-      missingFrontmatter.push(normalizePath(path.relative(targetDir, file)));
+
+  const entries = await readdir(skillsDir, { withFileTypes: true });
+  const installedCanonicalNames = new Set();
+
+  for (const entry of entries) {
+    if (entry.name === ".shared") continue;
+    
+    let canonicalName;
+    let skillFilePath;
+    if (entry.isDirectory()) {
+      canonicalName = entry.name;
+      skillFilePath = path.join(skillsDir, entry.name, "SKILL.md");
+    } else if (entry.name === "doc.md") {
+      canonicalName = "doc";
+      skillFilePath = path.join(skillsDir, entry.name);
+    } else if (entry.name.endsWith(".md")) {
+      reporter.warn("skills", `Unknown top-level file: ${entry.name}`, "skills");
+      continue;
+    } else {
+      continue;
+    }
+
+    if (!(await pathExists(skillFilePath))) {
+      continue;
+    }
+
+    if (installedCanonicalNames.has(canonicalName)) {
+      reporter.fail("skills", `duplicate canonical representation found for: ${canonicalName}`, "skills");
+      continue;
+    }
+    installedCanonicalNames.add(canonicalName);
+
+    const content = await readText(skillFilePath);
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (match) {
+      const nameMatch = match[1].match(/^name:\s*([^\s]+)/m);
+      if (nameMatch) {
+        const frontmatterName = nameMatch[1];
+        if (frontmatterName !== canonicalName) {
+          reporter.fail("skills", `frontmatter name mismatch for ${canonicalName}: expected ${canonicalName}, got ${frontmatterName}`, "skills");
+        }
+      }
     }
   }
-  if (missingFrontmatter.length > 0) {
-    reporter.warn("skills", `${missingFrontmatter.length} skill file(s) missing frontmatter`, "skills");
-  } else {
-    reporter.ok("skills", `${skillFiles.length} skill file(s) found`, "skills");
+
+  // Check missing bundled source for catalog entries
+  const shippedSkillsDir = path.join(templateRoot, ".agents/skills");
+  for (const item of CANONICAL_CATALOG) {
+    const installPath = item.name === "doc" ? "doc.md" : item.name;
+    const sourcePath = path.join(shippedSkillsDir, installPath);
+    if (!(await pathExists(sourcePath))) {
+      reporter.fail("skills", `Catalog entry missing bundled source: ${item.name}`, "skills");
+    }
   }
+
+  // Calculate coverage
+  let coreInstalled = 0;
+  let optionalInstalled = 0;
+  const coreTotal = CANONICAL_CATALOG.filter(s => s.tier === "core").length;
+
+  for (const installedName of installedCanonicalNames) {
+    const catalogItem = CANONICAL_CATALOG.find(s => s.name === installedName);
+    if (catalogItem) {
+      if (catalogItem.tier === "core") coreInstalled++;
+      else optionalInstalled++;
+    }
+  }
+
+  reporter.ok("skills", `Core skills: ${coreInstalled}/${coreTotal}`, "skills");
+  reporter.ok("skills", `Optional skills installed: ${optionalInstalled}`, "skills");
 }
 
 async function validateSubagents(targetDir, reporter) {
@@ -589,7 +643,7 @@ export async function runDoctor({
   const reporter = createReporter();
 
   await validateAgentsMd(targetDir, reporter);
-  await validateSkills(targetDir, reporter);
+  await validateSkills(targetDir, templateRoot, reporter);
   await validateSubagents(targetDir, reporter);
   await validateConfig(targetDir, reporter);
   await validateRules(targetDir, reporter, fix);

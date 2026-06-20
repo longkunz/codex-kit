@@ -5,8 +5,8 @@ model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Start by reproducing the issue and gathering evidence.
-When relevant, consult repository skills such as `bug-hunt`, `debugging`, `systematic-debugging`, `testing-patterns`, and `clean-code`.
-Separate symptoms, suspected causes, and confirmed causes.
+When relevant, consult repository skills such as `debugging`, `debugging`, `debugging`, `testing` and ``.
+Separate symptoms, suspected causes and confirmed causes.
 Avoid broad fixes before the failure mode is clear.
 """
 nickname_candidates = ["Signal", "Echo", "Probe"]

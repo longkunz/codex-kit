@@ -1,3 +1,4 @@
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { pathExists, readText } from "./fs.js";
 import { loadTemplateFiles } from "./templates.js";
@@ -13,60 +14,82 @@ export const SKILL_CATEGORIES = [
   "Shell & Environment"
 ];
 
-const SKILL_DEFINITIONS = [
-  ["app-builder", "Planning & Routing", "New app scaffolding, stack selection, and project setup."],
-  ["architecture", "Planning & Routing", "Requirements, tradeoffs, ADRs, and system design decisions."],
-  ["behavioral-modes", "Planning & Routing", "Explicit working modes such as brainstorm, implement, debug, or review."],
-  ["brainstorming", "Planning & Routing", "Clarify scope and generate options before implementation."],
-  ["intelligent-routing", "Planning & Routing", "Choose the best specialist skills or subagents for a task."],
-  ["parallel-agents", "Planning & Routing", "Bounded delegation and parallel subagent coordination."],
-  ["plan-writing", "Planning & Routing", "Written implementation plans, breakdowns, and checklists."],
-  ["planning", "Planning & Routing", "Execution-ready planning with scope, risks, and acceptance criteria."],
-  ["repo-onboarding", "Planning & Routing", "Fast map of an unfamiliar repository before making changes."],
-  ["clean-code", "Backend & Platform", "Pragmatic coding standards and scoped implementation quality."],
-  ["api-patterns", "Backend & Platform", "API design, response shapes, versioning, and protocol choices."],
-  ["database-design", "Backend & Platform", "Schema design, migrations, indexes, and query strategy."],
-  ["nodejs-best-practices", "Backend & Platform", "Node.js architecture, async patterns, and backend decision-making."],
-  ["python-patterns", "Backend & Platform", "Python project structure, async choices, and framework direction."],
-  ["rust-pro", "Backend & Platform", "Modern Rust systems work, async design, and performance."],
-  ["mcp-builder", "Backend & Platform", "Design principles for building MCP servers, tools, and resources."],
-  ["frontend-design", "Frontend & UI", "Web UI design systems, hierarchy, typography, and aesthetics."],
-  ["mobile-design", "Frontend & UI", "Touch-first UX, mobile patterns, and platform conventions."],
-  ["nextjs-react-expert", "Frontend & UI", "React or Next.js architecture, rendering, and performance."],
-  ["tailwind-patterns", "Frontend & UI", "Tailwind CSS v4 patterns, tokens, and utility architecture."],
-  ["web-design-guidelines", "Frontend & UI", "UI audits against structured web interface guidelines."],
-  ["i18n-localization", "Frontend & UI", "Translations, locale files, RTL support, and hardcoded string checks."],
-  ["game-development", "Frontend & UI", "Game-project routing and platform-specific game skill selection."],
-  ["bug-hunt", "Debugging & Review", "Disciplined reproduction, scoping, and root-cause isolation."],
-  ["debugging", "Debugging & Review", "Evidence-based debugging before changing code."],
-  ["systematic-debugging", "Debugging & Review", "Structured debugging with explicit hypotheses and proof."],
-  ["code-review", "Debugging & Review", "Patch and branch review for correctness and regressions."],
-  ["code-review-checklist", "Debugging & Review", "Supplemental prompts and checks during code review."],
-  ["high-signal-review", "Debugging & Review", "Findings-first review output focused on real risk."],
-  ["lint-and-validate", "Testing & Validation", "Linting, type checks, formatting, and static validation."],
-  ["tdd-workflow", "Testing & Validation", "RED-GREEN-REFACTOR test-driven development cycle."],
-  ["test-hardening", "Testing & Validation", "Strengthen weak or flaky tests around critical behavior."],
-  ["testing-patterns", "Testing & Validation", "Unit, integration, and mocking strategies."],
-  ["webapp-testing", "Testing & Validation", "Browser testing, deep audits, and Playwright-style checks."],
-  ["release-readiness", "Testing & Validation", "Higher-confidence validation for rollout and operational risk."],
-  ["doc", "Docs, Delivery & Operations", "Work with .docx documents where formatting fidelity matters."],
-  ["docs-shipper", "Docs, Delivery & Operations", "Ship docs that match real product behavior and commands."],
-  ["documentation-templates", "Docs, Delivery & Operations", "README, API, and technical documentation structure guidance."],
-  ["deployment-procedures", "Docs, Delivery & Operations", "Safe deployment principles, verification, and rollback thinking."],
-  ["server-management", "Docs, Delivery & Operations", "Operational process management, monitoring, and scaling decisions."],
-  ["mcp-onboarding", "Docs, Delivery & Operations", "Evaluate, adopt, and roll out MCP servers safely."],
-  ["vulnerability-scanner", "Security, Performance & Discoverability", "OWASP-aware vulnerability analysis and attack-surface review."],
-  ["red-team-tactics", "Security, Performance & Discoverability", "Authorized adversary-emulation and defensive reporting patterns."],
-  ["performance-profiling", "Security, Performance & Discoverability", "Measure-first profiling and performance optimization guidance."],
-  ["seo-fundamentals", "Security, Performance & Discoverability", "Search visibility, E-E-A-T, and Core Web Vitals basics."],
-  ["geo-fundamentals", "Security, Performance & Discoverability", "Optimization for AI search and citation engines."],
-  ["bash-linux", "Shell & Environment", "Bash and Linux command patterns for macOS or Linux."],
-  ["powershell-windows", "Shell & Environment", "PowerShell patterns, pitfalls, and Windows shell syntax."]
+export const CANONICAL_CATALOG = [
+  // CORE SKILLS
+  { name: "planning", tier: "core", profiles: [], category: "Planning & Routing", summary: "Execution-ready planning with scope, risks, and acceptance criteria." },
+  { name: "brainstorming", tier: "core", profiles: [], category: "Planning & Routing", summary: "Clarify scope and generate options before implementation." },
+  { name: "repo-onboarding", tier: "core", profiles: [], category: "Planning & Routing", summary: "Fast map of an unfamiliar repository before making changes." },
+  { name: "architecture", tier: "core", profiles: [], category: "Planning & Routing", summary: "Requirements, tradeoffs, ADRs, and system design decisions." },
+  { name: "debugging", tier: "core", profiles: [], category: "Debugging & Review", summary: "Evidence-based debugging before changing code." },
+  { name: "code-review", tier: "core", profiles: [], category: "Debugging & Review", summary: "Patch and branch review for correctness and regressions." },
+  { name: "testing", tier: "core", profiles: [], category: "Testing & Validation", summary: "Unit, integration, and mocking strategies." },
+  { name: "test-hardening", tier: "core", profiles: [], category: "Testing & Validation", summary: "Strengthen weak or flaky tests around critical behavior." },
+  { name: "lint-and-validate", tier: "core", profiles: [], category: "Testing & Validation", summary: "Linting, type checks, formatting, and static validation." },
+  { name: "documentation", tier: "core", profiles: [], category: "Docs, Delivery & Operations", summary: "Ship docs that match real product behavior and commands." },
+  { name: "security-review", tier: "core", profiles: [], category: "Security, Performance & Discoverability", summary: "OWASP-aware vulnerability analysis and attack-surface review." },
+  { name: "release-deployment", tier: "core", profiles: [], category: "Docs, Delivery & Operations", summary: "Safe deployment principles, verification, and rollback thinking." },
+  { name: "api-patterns", tier: "core", profiles: [], category: "Backend & Platform", summary: "API design, response shapes, versioning, and protocol choices." },
+  { name: "database-design", tier: "core", profiles: [], category: "Backend & Platform", summary: "Schema design, migrations, indexes, and query strategy." },
+  { name: "frontend-design", tier: "core", profiles: [], category: "Frontend & UI", summary: "Web UI design systems, hierarchy, typography, and aesthetics." },
+  { name: "tailwind-patterns", tier: "core", profiles: [], category: "Frontend & UI", summary: "Tailwind CSS v4 patterns, tokens, and utility architecture." },
+  { name: "web-design-guidelines", tier: "core", profiles: [], category: "Frontend & UI", summary: "UI audits against structured web interface guidelines." },
+
+  // OPTIONAL SKILLS
+  { name: "app-builder", tier: "optional", profiles: ["scaffolding"], category: "Planning & Routing", summary: "New app scaffolding, stack selection, and project setup." },
+  { name: "parallel-agents", tier: "optional", profiles: [], category: "Planning & Routing", summary: "Bounded delegation and parallel subagent coordination." },
+  { name: "nodejs-best-practices", tier: "optional", profiles: ["backend-node"], category: "Backend & Platform", summary: "Node.js architecture, async patterns, and backend decision-making." },
+  { name: "python-patterns", tier: "optional", profiles: ["backend-python"], category: "Backend & Platform", summary: "Python project structure, async choices, and framework direction." },
+  { name: "rust-pro", tier: "optional", profiles: ["rust"], category: "Backend & Platform", summary: "Modern Rust systems work, async design, and performance." },
+  { name: "mcp-builder", tier: "optional", profiles: ["mcp"], category: "Backend & Platform", summary: "Design principles for building MCP servers, tools, and resources." },
+  { name: "mcp-onboarding", tier: "optional", profiles: ["mcp"], category: "Docs, Delivery & Operations", summary: "Evaluate, adopt, and roll out MCP servers safely." },
+  { name: "mobile-design", tier: "optional", profiles: ["mobile"], category: "Frontend & UI", summary: "Touch-first UX, mobile patterns, and platform conventions." },
+  { name: "nextjs-react-expert", tier: "optional", profiles: ["frontend-framework"], category: "Frontend & UI", summary: "React or Next.js architecture, rendering, and performance." },
+  { name: "i18n-localization", tier: "optional", profiles: ["frontend-framework"], category: "Frontend & UI", summary: "Translations, locale files, RTL support, and hardcoded string checks." },
+  { name: "game-development", tier: "optional", profiles: ["game"], category: "Frontend & UI", summary: "Game-project routing and platform-specific game skill selection." },
+  { name: "red-team-tactics", tier: "optional", profiles: ["security-advanced"], category: "Security, Performance & Discoverability", summary: "Authorized adversary-emulation and defensive reporting patterns." },
+  { name: "performance-profiling", tier: "optional", profiles: ["performance"], category: "Security, Performance & Discoverability", summary: "Measure-first profiling and performance optimization guidance." },
+  { name: "seo-fundamentals", tier: "optional", profiles: ["discoverability"], category: "Security, Performance & Discoverability", summary: "Search visibility, E-E-A-T, and Core Web Vitals basics." },
+  { name: "geo-fundamentals", tier: "optional", profiles: ["discoverability"], category: "Security, Performance & Discoverability", summary: "Optimization for AI search and citation engines." },
+  { name: "server-management", tier: "optional", profiles: ["operations"], category: "Docs, Delivery & Operations", summary: "Operational process management, monitoring, and scaling decisions." },
+  { name: "doc", tier: "optional", profiles: ["documents"], category: "Docs, Delivery & Operations", summary: "Work with .docx documents where formatting fidelity matters." },
+  { name: "bash-linux", tier: "optional", profiles: ["operations"], category: "Shell & Environment", summary: "Bash and Linux command patterns for macOS or Linux." },
+  { name: "powershell-windows", tier: "optional", profiles: ["operations"], category: "Shell & Environment", summary: "PowerShell patterns, pitfalls, and Windows shell syntax." },
+  { name: "tdd-workflow", tier: "optional", profiles: ["tdd"], category: "Testing & Validation", summary: "RED-GREEN-REFACTOR test-driven development cycle." },
+  { name: "webapp-testing", tier: "optional", profiles: ["frontend-framework"], category: "Testing & Validation", summary: "Browser testing, deep audits, and Playwright-style checks." }
 ];
 
-const SKILL_MAP = new Map(
-  SKILL_DEFINITIONS.map(([name, category, summary]) => [name, { name, category, summary }])
-);
+const SUPPORTED_PROFILES = new Set([
+  "backend-node", "backend-python", "rust", "frontend-framework",
+  "mobile", "game", "mcp", "security-advanced", "performance",
+  "operations", "discoverability", "documents", "tdd", "scaffolding"
+]);
+
+function validateCatalog(catalog) {
+  const seenNames = new Set();
+  
+  for (const skill of catalog) {
+    if (seenNames.has(skill.name)) {
+      throw new Error(`Duplicate canonical name: ${skill.name}`);
+    }
+    seenNames.add(skill.name);
+
+    if (skill.tier !== "core" && skill.tier !== "optional") {
+      throw new Error(`Invalid tier for ${skill.name}: ${skill.tier}`);
+    }
+
+    if (skill.tier === "core" && skill.profiles.length > 0) {
+      throw new Error(`Core skill ${skill.name} cannot be assigned to profiles`);
+    }
+
+    for (const profile of skill.profiles) {
+      if (!SUPPORTED_PROFILES.has(profile)) {
+        throw new Error(`Unsupported profile name '${profile}' in skill ${skill.name}`);
+      }
+    }
+  }
+
+  return catalog;
+}
 
 function sourceEntryForSkill(skillsRoot, name) {
   return name === "doc" ? path.join(skillsRoot, "doc.md") : path.join(skillsRoot, name);
@@ -136,26 +159,27 @@ export function normalizeSkillSelection(skills) {
 }
 
 export async function getShippedSkills(skillsRoot) {
+  const catalog = validateCatalog(CANONICAL_CATALOG);
   const skills = [];
 
   for (const category of SKILL_CATEGORIES) {
-    for (const definition of SKILL_DEFINITIONS.filter((item) => item[1] === category)) {
-      const [name] = definition;
-      const metadata = SKILL_MAP.get(name);
-      const sourcePath = sourceEntryForSkill(skillsRoot, name);
-      const descriptionSource =
-        name === "doc" ? sourcePath : path.join(sourcePath, "SKILL.md");
+    for (const metadata of catalog.filter((item) => item.category === category)) {
+      const sourcePath = sourceEntryForSkill(skillsRoot, metadata.name);
+      
+      if (!(await pathExists(sourcePath))) {
+        throw new Error(`Catalog entry missing source: ${metadata.name}`);
+      }
+
+      const descriptionSource = metadata.name === "doc" ? sourcePath : path.join(sourcePath, "SKILL.md");
       const description = (await readFrontmatterDescription(descriptionSource)) || metadata.summary;
 
       skills.push({
-        name,
-        category: metadata.category,
-        summary: metadata.summary,
+        ...metadata,
         description,
         keywords: buildSkillKeywords(metadata),
         sourcePath,
-        installRelativePath: installRelativePathForSkill(name),
-        kind: name === "doc" ? "file" : "directory"
+        installRelativePath: installRelativePathForSkill(metadata.name),
+        kind: metadata.name === "doc" ? "file" : "directory"
       });
     }
   }
@@ -180,6 +204,38 @@ export async function getSelectedShippedSkills({ skillsRoot, skills }) {
   return catalog.filter((skill) => selected.has(skill.name));
 }
 
+export async function getCoreSkills(skillsRoot) {
+  const catalog = await getShippedSkills(skillsRoot);
+  return catalog.filter((skill) => skill.tier === "core");
+}
+
+export async function getSkillsForProfile(skillsRoot, profileName) {
+  const catalog = await getShippedSkills(skillsRoot);
+  const profileSkills = catalog.filter((skill) => skill.profiles && skill.profiles.includes(profileName));
+  if (profileSkills.length === 0) {
+    throw new Error(`Unknown profile or no skills mapped: ${profileName}`);
+  }
+  const coreSkills = catalog.filter((skill) => skill.tier === "core");
+  
+  // Return unique combination of core and profile skills
+  const combined = [...coreSkills, ...profileSkills];
+  const uniqueNames = new Set();
+  return combined.filter((skill) => {
+    if (uniqueNames.has(skill.name)) return false;
+    uniqueNames.add(skill.name);
+    return true;
+  });
+}
+
+export async function getSkillByName(skillsRoot, skillName) {
+  const catalog = await getShippedSkills(skillsRoot);
+  const match = catalog.find((skill) => skill.name === skillName);
+  if (!match) {
+    throw new Error(`Unknown skill: ${skillName}`);
+  }
+  return match;
+}
+
 export async function loadSkillTemplates(skill) {
   if (skill.kind === "file") {
     return [
@@ -198,13 +254,16 @@ export async function loadSkillTemplates(skill) {
 }
 
 export async function searchShippedSkills({ skillsRoot, query }) {
-  const needle = query.trim().toLowerCase();
-  const catalog = await getShippedSkills(skillsRoot);
-  if (!needle) {
-    return [];
+  if (!query) {
+    return getShippedSkills(skillsRoot);
   }
 
-  return catalog.filter((skill) => skill.keywords.includes(needle));
+  const catalog = await getShippedSkills(skillsRoot);
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+
+  return catalog.filter((skill) => {
+    return terms.every((term) => skill.keywords.includes(term));
+  });
 }
 
 export async function getInstalledShippedSkills({ skillsRoot, codexHome }) {
@@ -228,4 +287,19 @@ export async function getInstalledShippedSkills({ skillsRoot, codexHome }) {
   }
 
   return { targetRoot, installed, missing };
+}
+
+export async function inferInstalledProjectSkills(targetDir, skillsRoot) {
+  const catalog = await getShippedSkills(skillsRoot);
+  const installedRoot = path.join(targetDir, ".agents/skills");
+  if (!(await pathExists(installedRoot))) {
+    return [];
+  }
+  
+  const entries = await readdir(installedRoot, { withFileTypes: true });
+  const names = entries
+    .filter((entry) => entry.isDirectory() || entry.name === "doc.md")
+    .map((entry) => entry.name === "doc.md" ? "doc" : entry.name);
+    
+  return catalog.filter((skill) => names.includes(skill.name));
 }

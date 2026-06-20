@@ -34,7 +34,7 @@ Adopt MCP servers deliberately. The goal is useful context and tools without wid
 
 - Workflow: `.agents/workflows/plan.md` or `.agents/workflows/verify.md`
 - Primary subagent: `docs_researcher`
-- Common supporting skills: `mcp-builder`, `documentation-templates`
+- Common supporting skills: `mcp-builder`, `documentation`
 - Pull in `security_auditor` when the server reaches sensitive systems or credentials
 
 ## Avoid

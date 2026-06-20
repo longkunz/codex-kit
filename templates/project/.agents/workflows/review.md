@@ -8,10 +8,10 @@ Identify the highest-signal risks before code is merged or relied on.
 
 ## Recommended Skill Bundle
 
-- `high-signal-review` for findings-first output
+- `code-review` for findings-first output
 - `code-review` for the base review contract
-- `code-review-checklist` for supplemental prompts
-- `release-readiness` when migration or rollout risk is involved
+- `code-review` for supplemental prompts
+- `release-deployment` when migration or rollout risk is involved
 
 ## Process
 
@@ -40,4 +40,4 @@ Lead with issues, ordered by severity:
 - avoid style-only feedback unless it hides a real bug or maintenance risk
 - do not bury material findings under summaries
 - if the review scope is unclear, define it first
-- use the output check in `high-signal-review/verify.md` before closing a review
+- use the output check in `code-review/verify.md` before closing a review
