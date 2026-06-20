@@ -36,5 +36,8 @@
   "bugs": {
     "url": "https://github.com/longkunz/codex-kit/issues"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }
