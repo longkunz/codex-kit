@@ -38,8 +38,6 @@ Once the primary mode is clear, route to the narrowest workflow:
 | user asks for an implementation plan | `plan.md` |
 | new feature or structured code work | `create.md` |
 | iterative change to an existing feature | `enhance.md` |
-| bug or regression investigation | `debug.md` |
-| review or audit request | `review.md` |
 | UI or UX design direction work | `ui-ux-pro-max.md` |
 | implement an existing Figma design in code | `figma-to-code.md` |
 | test creation or test execution | `test.md` |

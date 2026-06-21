@@ -41,13 +41,11 @@ The goal is to keep the system small, composable, and explicit. Skills provide k
 │       ├── brainstorm.md
 │       ├── check.md
 │       ├── create.md
-│       ├── debug.md
 │       ├── deploy.md
 │       ├── enhance.md
 │       ├── orchestrate.md
 │       ├── plan.md
 │       ├── preview.md
-│       ├── review.md
 │       ├── ship.md
 │       ├── status.md
 │       ├── test.md
@@ -114,8 +112,6 @@ They define repeatable playbooks for common task types such as:
 - planning
 - creating
 - enhancing
-- debugging
-- reviewing
 - testing
 - UI and UX design
 - checking

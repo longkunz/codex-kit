@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readdir, rmdir } from "node:fs/promises";
 import { pathExists, readText, removePath, writeText } from "./fs.js";
 import { sha256 } from "./hash.js";
 import {
@@ -25,6 +26,28 @@ const PROJECT_SKILLS_TARGET_ROOT = ".agents/skills";
 const PROJECT_SHARED_TARGET_ROOT = ".agents/.shared";
 const LEGACY_RULES_PATH = "codex/rules/default.rules";
 const RULES_PATH = ".codex/rules/default.rules";
+
+const RETIREMENT_MIGRATIONS = Object.freeze([
+  {
+    retiredIn: "1.3.0",
+    paths: Object.freeze([
+      ".agents/workflows/debug.md",
+      ".agents/workflows/review.md"
+    ])
+  }
+]);
+
+async function removeDirectoryIfEmpty(dirPath) {
+  try {
+    await rmdir(dirPath);
+    return true;
+  } catch (err) {
+    if (err.code === "ENOTEMPTY" || err.code === "EEXIST" || err.code === "ENOENT") {
+      return false;
+    }
+    throw err;
+  }
+}
 
 function inferManifestTarget(filePath, fallback = "project") {
   const normalized = normalizePath(filePath);
@@ -88,7 +111,43 @@ function buildManifest(version, files, features = {}) {
 }
 
 function normalizePath(filePath) {
-  return filePath.split(path.sep).join("/");
+  return filePath.replace(/\\/g, "/");
+}
+
+function normalizeAndValidateRetiredPath(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error("Invalid retired path: empty or invalid type");
+  }
+
+  const raw = value.trim().replace(/\\/g, "/");
+
+  if (
+    path.posix.isAbsolute(raw) ||
+    path.win32.isAbsolute(value) ||
+    raw.startsWith("//")
+  ) {
+    throw new Error("Invalid retired path: absolute path not allowed");
+  }
+
+  const segments = raw.split("/");
+
+  if (
+    segments.some((segment) => segment === "." || segment === "..")
+  ) {
+    throw new Error("Invalid retired path: traversal not allowed");
+  }
+
+  const normalized = path.posix.normalize(raw);
+
+  if (
+    normalized === "." ||
+    normalized.endsWith("/") ||
+    !normalized.startsWith(".agents/workflows/")
+  ) {
+    throw new Error("Invalid retired path: must be a workflow file");
+  }
+
+  return normalized;
 }
 
 function manifestKey(file) {
@@ -208,7 +267,8 @@ async function writeProjectSubset({
   target = "project",
   force = false,
   dryRun = false,
-  syncMode = false
+  syncMode = false,
+  retirementMigrations = []
 }) {
   const existingFiles = normalizeManifestFiles(existingManifest);
   const targetForPath =
@@ -220,13 +280,105 @@ async function writeProjectSubset({
       manifestKey({ target: targetForPath(filePath), path: filePath })
     )
   );
+
+  const retiredPathsSet = new Set();
+  for (const migration of retirementMigrations) {
+    for (const p of migration.paths) {
+      retiredPathsSet.add(normalizeAndValidateRetiredPath(p));
+    }
+  }
+
   const nextManifestFiles = existingFiles.filter(
-    (file) => !replaceKeys.has(manifestKey(file))
+    (file) => !replaceKeys.has(manifestKey(file)) && !retiredPathsSet.has(normalizePath(file.path))
   );
+
   const written = [];
   const skipped = [];
+  const retirement = {
+    deleted: [],
+    preserved: [],
+    manifestEntriesRemoved: [],
+    directoriesRemoved: []
+  };
 
-  for (const template of templates) {
+  const activeTemplates = templates.filter(t => !retiredPathsSet.has(normalizePath(t.relativePath)));
+
+  const removedDirectories = new Set();
+  for (const retiredPath of retiredPathsSet) {
+    const destination = path.join(targetDir, retiredPath);
+    const entryTarget = targetForPath(retiredPath);
+    const mKey = manifestKey({ target: entryTarget, path: retiredPath });
+    const previous = manifestByKey.get(mKey);
+    const currentHash = await getCurrentHash(destination);
+    const exists = currentHash !== null;
+
+    if (!previous) {
+      if (exists) {
+        retirement.preserved.push({ path: retiredPath, reason: "untracked" });
+      }
+      continue;
+    }
+
+    if (previous.status !== "managed") {
+      retirement.preserved.push({
+        path: retiredPath,
+        reason: "not-managed",
+        status: previous.status ?? null
+      });
+      nextManifestFiles.push(previous);
+      continue;
+    }
+
+    if (!previous.installedHash) {
+      retirement.preserved.push({ path: retiredPath, reason: "missing-installed-hash" });
+      nextManifestFiles.push(previous);
+      continue;
+    }
+
+    if (!exists) {
+      retirement.manifestEntriesRemoved.push(retiredPath);
+      removedDirectories.add(path.dirname(destination));
+      continue;
+    }
+
+    if (currentHash !== previous.installedHash) {
+      retirement.preserved.push({ path: retiredPath, reason: "locally-modified" });
+      nextManifestFiles.push(previous);
+      continue;
+    }
+
+    if (!dryRun) {
+      await removePath(destination);
+    }
+    retirement.deleted.push(retiredPath);
+    retirement.manifestEntriesRemoved.push(retiredPath);
+
+    removedDirectories.add(path.dirname(destination));
+  }
+
+  for (const dir of removedDirectories) {
+    if (!dryRun) {
+      const removed = await removeDirectoryIfEmpty(dir);
+      if (removed) {
+        retirement.directoriesRemoved.push(normalizePath(path.relative(targetDir, dir)));
+      }
+    } else {
+      try {
+        const contents = await readdir(dir);
+        const remaining = contents.filter(c => {
+          const p = normalizePath(path.relative(targetDir, path.join(dir, c)));
+          return !retirement.deleted.includes(p);
+        });
+        if (remaining.length === 0) {
+          retirement.directoriesRemoved.push(normalizePath(path.relative(targetDir, dir)));
+        }
+      } catch (err) {
+        // Ignore
+      }
+    }
+  }
+
+  for (const template of activeTemplates) {
     const relativePath = normalizePath(template.relativePath);
     const entryTarget = targetForPath(relativePath);
     const destination = path.join(targetDir, template.relativePath);
@@ -280,7 +432,7 @@ async function writeProjectSubset({
     );
   }
 
-  return { written, skipped };
+  return { written, skipped, retirement };
 }
 
 async function loadHookTemplates(hookRoot) {
@@ -573,7 +725,8 @@ export async function initProject({
   installPlugin = false,
   force = false,
   dryRun = false,
-  selectedSkills = null
+  selectedSkills = null,
+  retirementMigrations = RETIREMENT_MIGRATIONS
 }) {
   if (!selectedSkills) {
     selectedSkills = await getCoreSkills(path.join(templateRoot, ".agents/skills"));
@@ -606,7 +759,8 @@ export async function initProject({
     target: (filePath) => inferManifestTarget(filePath, "project"),
     force,
     dryRun,
-    syncMode: false
+    syncMode: false,
+    retirementMigrations
   });
 
   if (installPlugin) {
@@ -623,10 +777,17 @@ export async function initProject({
     }
   }
 
+  const warnings = [rulesMigration.warning].filter(Boolean);
+  if (result.retirement?.preserved) {
+    for (const item of result.retirement.preserved) {
+      warnings.push(`Preserved retired workflow '${item.path}' (reason: ${item.reason}).`);
+    }
+  }
+
   return {
     ...result,
     pluginInstalled: installPlugin,
-    warnings: [rulesMigration.warning].filter(Boolean),
+    warnings,
     migrated: rulesMigration.migrated ? [LEGACY_RULES_PATH] : []
   };
 }
@@ -677,7 +838,8 @@ export async function updateProject({
   installPlugin = false,
   force = false,
   dryRun = false,
-  selectedSkills = null
+  selectedSkills = null,
+  retirementMigrations = RETIREMENT_MIGRATIONS
 }) {
   if (!selectedSkills) {
     selectedSkills = await inferInstalledProjectSkills(targetDir, path.join(templateRoot, ".agents/skills"));
@@ -718,7 +880,8 @@ export async function updateProject({
     target: (filePath) => inferManifestTarget(filePath, "project"),
     force,
     dryRun,
-    syncMode: true
+    syncMode: true,
+    retirementMigrations
   });
 
   if (includePlugin) {
@@ -735,10 +898,17 @@ export async function updateProject({
     }
   }
 
+  const warnings = [rulesMigration.warning].filter(Boolean);
+  if (result.retirement?.preserved) {
+    for (const item of result.retirement.preserved) {
+      warnings.push(`Preserved retired workflow '${item.path}' (reason: ${item.reason}).`);
+    }
+  }
+
   return {
     ...result,
     pluginInstalled: includePlugin,
-    warnings: [rulesMigration.warning].filter(Boolean),
+    warnings,
     migrated: rulesMigration.migrated ? [LEGACY_RULES_PATH] : []
   };
 }

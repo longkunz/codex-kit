@@ -44,8 +44,8 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - If the repository already contains `.agents/workflows/`, prefer following those workflow files directly instead of searching npm or package cache.
 - Normalize common workflow aliases before acting:
   - `ui-ux-promax`, `ui ux promax`, `uix promax` -> `ui-ux-pro-max`
-  - `review workflow` -> `review`
   - `ship workflow` -> `ship`
+  - `review`, `code review`, `review workflow` -> use the shipped `code-review` skill
 - If the user asks to use a workflow from Codex Kit and the repository is not scaffolded yet, explain that the workflow lives in the project scaffold and suggest `npx @longkunz/codex-kit init` or `npx @longkunz/codex-kit install`.
 
 ## Intent Mapping
@@ -84,7 +84,7 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - `xem trước autoskills` / `preview autoskills` -> `npx @longkunz/codex-kit autoskills --dry-run`
 - `dùng workflow ui-ux-promax của codex kit` -> resolve to `.agents/workflows/ui-ux-pro-max.md` in the current repository and follow that workflow
 - `use the plan workflow from codex kit` -> resolve to `.agents/workflows/plan.md` in the current repository and follow it directly
-- `follow the review workflow in this repo` -> use `.agents/workflows/review.md` from the workspace, not the npm package
+- `follow the review workflow in this repo` -> use the shipped `code-review` skill
 - The shipped MCP bundle currently includes `context7` and a commented `mysql` example using `@benborla29/mcp-server-mysql`.
 
 ## Output

@@ -42,7 +42,6 @@ When delegating to a subagent, include the preferred skill set in the task hando
 
 ### Debugging
 
-- Use `.agents/workflows/debug.md` for bug investigation and root-cause isolation.
 - Prefer the `debugger` subagent for evidence gathering before making changes.
 - Load `debugging`, and optionally `testing` to confirm the failure mode.
   Preferred pairings:
@@ -51,7 +50,6 @@ When delegating to a subagent, include the preferred skill set in the task hando
 
 ### Review and Documentation
 
-- Use `.agents/workflows/review.md` for code review, patch review, and regression checks.
 - Use the `reviewer` subagent for correctness, security, and missing tests.
 - Use the `docs_researcher` subagent when framework or API behavior must be verified.
 - Use `security_auditor`, `documentation_writer`, `performance_optimizer`, or `seo_specialist` when the task has a specialized review or improvement axis.
