@@ -34,7 +34,6 @@ Once the primary mode is clear, route to the narrowest workflow:
 
 | Request Type | Workflow |
 | --- | --- |
-| user asks for an implementation plan | `plan.md` |
 | new feature or structured code work | `create.md` |
 | iterative change to an existing feature | `enhance.md` |
 | UI or UX design direction work | `ui-ux-pro-max.md` |

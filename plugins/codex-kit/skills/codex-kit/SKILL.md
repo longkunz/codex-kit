@@ -83,7 +83,7 @@ Use this skill when the user wants to bootstrap or maintain the Codex Kit scaffo
 - `auto detect stack and install skills` -> `npx @longkunz/codex-kit autoskills`
 - `xem trước autoskills` / `preview autoskills` -> `npx @longkunz/codex-kit autoskills --dry-run`
 - `dùng workflow ui-ux-promax của codex kit` -> resolve to `.agents/workflows/ui-ux-pro-max.md` in the current repository and follow that workflow
-- `use the plan workflow from codex kit` -> resolve to `.agents/workflows/plan.md` in the current repository and follow it directly
+- `use the plan workflow from codex kit` -> load the `planning` skill and produce an implementation plan
 - `follow the review workflow in this repo` -> use the shipped `code-review` skill
 - The shipped MCP bundle currently includes `context7` and a commented `mysql` example using `@benborla29/mcp-server-mysql`.
 

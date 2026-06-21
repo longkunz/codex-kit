@@ -111,7 +111,6 @@ const EXPECTED_WORKFLOWS = [
   "deploy.md",
   "enhance.md",
   "figma-to-code.md",
-  "plan.md",
   "preview.md",
   "ship.md",
   "status.md",
@@ -399,9 +398,9 @@ test("unknown skill exits without partial install", async () => {
   });
 });
 
-test("workflow bundle remains 11 independent workflows with parallel-agents intact", async () => {
+test("workflow bundle remains 10 independent workflows with parallel-agents intact", async () => {
   assert.deepEqual((await readdir(workflowRoot)).sort(), EXPECTED_WORKFLOWS);
-  assert.equal((await readdir(workflowRoot)).length, 11);
+  assert.equal((await readdir(workflowRoot)).length, 10);
   assert.ok((await readdir(skillsRoot)).includes("parallel-agents"));
 });
 
