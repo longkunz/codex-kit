@@ -42,7 +42,6 @@ The goal is to keep the system small, composable, and explicit. Skills provide k
 │       ├── create.md
 │       ├── deploy.md
 │       ├── enhance.md
-│       ├── orchestrate.md
 │       ├── plan.md
 │       ├── preview.md
 │       ├── ship.md
