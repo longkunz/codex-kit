@@ -65,7 +65,7 @@ When delegating to a subagent, include the preferred skill set in the task hando
 ### Validation and Release
 
 - Use `.agents/workflows/check.md` for fast local validation.
-- Use `.agents/workflows/test.md` when test execution or test authoring is the main task.
+- Load `testing` when test execution or test authoring is the main task.
 - Use `.agents/workflows/verify.md` for deeper release readiness checks.
 - Use `.agents/workflows/deploy.md` for deployment preparation or execution.
 - Use `.agents/workflows/ship.md` when preparing a merge, release, or deployment summary.

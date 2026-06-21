@@ -174,4 +174,17 @@ description: Testing patterns and principles. Unit, integration, mocking strateg
 
 ---
 
+## 11. Execution Process & Rules
+
+When the user asks to run tests, add tests, or investigate coverage:
+
+1. **Discover Conventions**: Inspect the codebase first to detect the active test framework and existing conventions.
+2. **Clarify Ambiguity**: Identify the exact behavior to prove. Do not encode ambiguous product behavior into tests without asking for clarification first.
+3. **Target Scope**: Choose and run the smallest test scope with meaningful signal. Prefer targeted tests over sweeping test rewrites.
+4. **Report Accurately**: Always report the exact command you ran and the result.
+5. **Failures**: If a test fails unexpectedly, stop and investigate (potentially pivoting to `debugging`), rather than blindly changing code to make the test pass.
+6. **Separation of Concerns**: Do NOT run lint or type-check commands during testing execution; those belong to `lint-and-validate`.
+
+---
+
 > **Remember:** Tests are documentation. If someone can't understand what the code does from the tests, rewrite them.

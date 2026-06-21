@@ -39,7 +39,6 @@ Once the primary mode is clear, route to the narrowest workflow:
 | iterative change to an existing feature | `enhance.md` |
 | UI or UX design direction work | `ui-ux-pro-max.md` |
 | implement an existing Figma design in code | `figma-to-code.md` |
-| test creation or test execution | `test.md` |
 | local preview management | `preview.md` |
 | project or task status request | `status.md` |
 | quick validation | `check.md` |
@@ -105,7 +104,7 @@ If a skill includes `verify.md`, `handoff.md`, or a checklist file, use it as th
 
 ## 6. Validation Layer
 
-Validation happens in two tiers, with optional `test.md` when test authoring or targeted execution is the main task.
+Validation happens in two tiers, and tests should be authored or executed via the `testing` skill when testing is the main focus.
 
 ### Check
 

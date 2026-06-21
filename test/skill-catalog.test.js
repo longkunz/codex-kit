@@ -116,7 +116,6 @@ const EXPECTED_WORKFLOWS = [
   "preview.md",
   "ship.md",
   "status.md",
-  "test.md",
   "ui-ux-pro-max.md",
   "verify.md"
 ].sort();
@@ -401,9 +400,9 @@ test("unknown skill exits without partial install", async () => {
   });
 });
 
-test("workflow bundle remains 13 independent workflows with parallel-agents intact", async () => {
+test("workflow bundle remains 12 independent workflows with parallel-agents intact", async () => {
   assert.deepEqual((await readdir(workflowRoot)).sort(), EXPECTED_WORKFLOWS);
-  assert.equal((await readdir(workflowRoot)).length, 13);
+  assert.equal((await readdir(workflowRoot)).length, 12);
   assert.ok((await readdir(skillsRoot)).includes("parallel-agents"));
   assert.ok((await readdir(workflowRoot)).includes("orchestrate.md"));
   assert.equal((await readdir(skillsRoot)).includes("orchestrate.md"), false);

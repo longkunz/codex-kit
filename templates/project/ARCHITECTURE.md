@@ -47,7 +47,6 @@ The goal is to keep the system small, composable, and explicit. Skills provide k
 │       ├── preview.md
 │       ├── ship.md
 │       ├── status.md
-│       ├── test.md
 │       ├── ui-ux-pro-max.md
 │       └── verify.md
 ├── .codex/
@@ -110,7 +109,6 @@ They define repeatable playbooks for common task types such as:
 - planning
 - creating
 - enhancing
-- testing
 - UI and UX design
 - checking
 - verifying
