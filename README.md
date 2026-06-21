@@ -33,7 +33,7 @@ npx @longkunz/codex-kit init --path ./my-project
 ## What You Get
 
 - root routing docs: `AGENTS.md`, `ARCHITECTURE.md`, `AGENT_FLOW.md`
-- 40+ shipped skills in `.agents/skills`
+- a catalog of 38 shipped skills (17 core + 21 optional), with 17 core skills installed by default
 - 16 workflow playbooks in `.agents/workflows`
 - 16 focused subagents in `.codex/agents`
 - shared UI/UX data and scripts in `.agents/.shared`
@@ -42,86 +42,45 @@ npx @longkunz/codex-kit init --path ./my-project
 - optional project hooks in `.codex/hooks.json` and `.codex/hooks/`
 - managed-file tracking in `.codex-kit/manifest.json`
 
-## CLI
+## Command Quick Reference
 
-Primary commands:
+| Group | Command | Description |
+|---|---|---|
+| Setup | `codex-kit init` | Initialize a project with the 17 core skills. |
+| Setup | `codex-kit init --profile <name>` | Initialize core skills plus the selected optional profile. |
+| Setup | `codex-kit init --include-plugin` | Initialize and include the workspace plugin. |
+| Setup | `codex-kit init --include-hooks` | Initialize and include project hooks. |
+| Setup | `codex-kit init --all` | Initialize with plugin and hooks. |
+| Setup | `codex-kit setup-codex` | Set up the scaffold, workspace plugin, and core project skills. |
+| Setup | `codex-kit setup-codex --enable-memories` | Full local setup with user-local memories enabled. |
+| Skills | `codex-kit install skill <name>` | Install one canonical skill by name. |
+| Skills | `codex-kit install --target skills` | Install the 17 core skills into the current project. |
+| Skills | `codex-kit install --target skills --profile <name>` | Install core + profile-specific skills. |
+| Skills | `codex-kit autoskills` | Detect the project stack and install matching catalog skills. |
+| Skills | `codex-kit autoskills --dry-run` | Preview detected technologies and matching skills without writing files. |
+| Skills | `codex-kit sync --target skills` | Sync the canonical skills currently installed in the project. |
+| Discovery | `codex-kit list --target skills` | List shipped skills with tier and profile metadata. |
+| Discovery | `codex-kit list --target skills --query <text>` | Search the shipped skill catalog. |
+| Discovery | `codex-kit list --target plugin` | Show workspace plugin status. |
+| Discovery | `codex-kit list --target mcp` | Show MCP bundle status. |
+| Discovery | `codex-kit list --target memories` | Show local memories status. |
+| Discovery | `codex-kit status` | Show scaffold-managed file status. |
+| Maintenance | `codex-kit update` | Refresh scaffold-managed files. |
+| Maintenance | `codex-kit sync-codex` | Sync scaffold + plugin + project skills after upgrading. |
+| Maintenance | `codex-kit sync --target plugin` | Sync the workspace plugin. |
+| Maintenance | `codex-kit sync --target mcp` | Sync the MCP bundle in project config. |
+| Maintenance | `codex-kit sync --target hooks` | Sync project hooks. |
+| Components | `codex-kit install --target plugin` | Install only the workspace plugin. |
+| Components | `codex-kit install --target mcp` | Install MCP bundle into project config. |
+| Components | `codex-kit install --target mcp --scope local` | Install MCP bundle into user-local Codex config. |
+| Components | `codex-kit install --target hooks` | Install project hooks. |
+| Components | `codex-kit install --target memories --scope local` | Enable user-local Codex memories. |
+| Diagnostics | `codex-kit doctor` | Validate Codex Kit project health. |
+| Diagnostics | `codex-kit doctor --fix` | Apply safe repairs. |
+| Diagnostics | `codex-kit doctor --json` | Print machine-readable validation results. |
+| Diagnostics | `codex-kit doctor --strict` | Treat warnings as failures. |
 
-```bash
-codex-kit init
-codex-kit init --include-plugin
-codex-kit init --all
-codex-kit install
-codex-kit install --target plugin
-codex-kit install --target mcp
-codex-kit install --target skills
-codex-kit install --target skills --scope local
-codex-kit install --target hooks
-codex-kit install --target memories --scope local
-codex-kit update
-codex-kit sync --target mcp
-codex-kit sync --target plugin
-codex-kit sync --target skills
-codex-kit sync --target skills --scope local
-codex-kit sync --target hooks
-codex-kit list --target skills
-codex-kit list --target skills --query frontend
-codex-kit list --target skills --scope local
-codex-kit list --target plugin
-codex-kit list --target mcp
-codex-kit remove --target skills --scope local --skills ,planning
-codex-kit autoskills
-codex-kit autoskills --scope local
-codex-kit autoskills --dry-run
-codex-kit setup-codex
-codex-kit setup-codex --enable-memories
-codex-kit sync-codex
-codex-kit status
-codex-kit doctor
-codex-kit doctor --json
-codex-kit doctor --fix
-```
-
-Common examples:
-
-```bash
-codex-kit init --path ./my-project
-codex-kit init --path ./my-project --include-plugin
-codex-kit init --path ./my-project --all
-codex-kit install --path ./my-project
-codex-kit install --target plugin
-codex-kit install --target mcp
-codex-kit install --target skills
-codex-kit install --target hooks
-codex-kit install --target memories --scope local
-codex-kit doctor
-
-codex-kit list --target skills
-codex-kit list --target skills --query frontend
-codex-kit list --target skills --scope local
-codex-kit list --target mcp
-
-codex-kit install --target skills --scope local
-codex-kit install --target skills --scope local --skills ,planning
-codex-kit sync --target skills --scope local --skills ,planning
-codex-kit remove --target skills --scope local --skills ,planning
-
-codex-kit setup-codex
-codex-kit setup-codex --enable-memories
-codex-kit sync-codex
-```
-
-Legacy aliases still work:
-
-```bash
-codex-kit install --target project
-codex-kit sync --target project
-codex-kit list-skills
-codex-kit search-skills frontend
-codex-kit list-installed-skills
-codex-kit install-skills
-codex-kit sync-skills
-codex-kit remove-skills --skills ,planning
-```
+> See the [Command Quick Reference](#command-quick-reference) for the full list. For detailed options run `codex-kit --help`.
 
 ## Codex Integration
 
@@ -137,16 +96,8 @@ There are two different installation scopes:
 - focused project-local installs: `install --target plugin` or `install --target skills` add only those parts into the current repository
 - project-local hooks: `install --target hooks` writes `.codex/hooks.json` and safe local hook scripts
 - project-local MCP: `install --target mcp` writes the shipped MCP bundle into `.codex/config.toml`
-- user-local: the shipped skill catalog is installed into `${CODEX_HOME:-~/.codex}/skills`
 - user-local MCP: `install --target mcp --scope local` writes the shipped MCP bundle into `${CODEX_HOME:-~/.codex}/config.toml`
 - user-local memories: `install --target memories --scope local` updates only `${CODEX_HOME:-~/.codex}/config.toml`
-
-To scaffold a project:
-
-```bash
-npx @longkunz/codex-kit init
-npx @longkunz/codex-kit install
-```
 
 The default scaffold leaves the workspace plugin and hooks out. Include the plugin during init, or include every project-scoped optional bundle:
 
@@ -156,12 +107,6 @@ npx @longkunz/codex-kit init --all
 ```
 
 `--all` includes the plugin and project hooks. It does not enable user-local memories.
-
-To install only the workspace plugin into the current project:
-
-```bash
-npx @longkunz/codex-kit install --target plugin
-```
 
 The installed plugin bundles its Codex Kit skill, safe local hooks, and the `context7` MCP configuration. Hook scripts do not make network calls or log prompt text, file contents, or environment values.
 
@@ -174,18 +119,6 @@ codex plugin add codex-kit@local-plugins
 
 Run `codex-kit doctor` first to validate the marketplace name, source path, policy, plugin metadata, bundled hooks, MCP config, and package version. Codex Kit prepares the local marketplace files but does not modify the user's global Codex plugin registry.
 
-To install only the shipped project skills into the current project:
-
-```bash
-npx @longkunz/codex-kit install --target skills
-```
-
-To install the optional safe hook bundle into the current project:
-
-```bash
-npx @longkunz/codex-kit install --target hooks
-```
-
 The hook bundle creates:
 
 - `.codex/hooks.json`
@@ -196,23 +129,10 @@ The hook bundle creates:
 
 Hooks are safe by default: they run locally, do not make network calls, and do not log prompt text, file contents, or environment values. Existing hook files are not overwritten unless you pass `--force`.
 
-To install the shipped MCP bundle into the project or local Codex config:
-
-```bash
-npx @longkunz/codex-kit install --target mcp
-npx @longkunz/codex-kit install --target mcp --scope local
-```
-
 The shipped MCP bundle currently includes:
 
 - `context7` for developer documentation
 - a commented `mysql` example via `@benborla29/mcp-server-mysql`; uncomment it only when you want to enable MySQL MCP intentionally
-
-To do the full local setup in one go for the current repository:
-
-```bash
-npx @longkunz/codex-kit setup-codex
-```
 
 Memories are opt-in and user-local only. To enable them:
 
@@ -235,47 +155,101 @@ disable_on_external_context = true
 
 Project scaffolds never enable memories by default and never write personal memory content.
 
-After upgrading Codex Kit, sync both the workspace plugin and local shipped skills:
+## Skill Catalog by Category
+
+Categories group skills by responsibility. Profiles are installation bundles for optional skills; a category is not necessarily a profile.
+
+| Category | Purpose | Core skills | Optional skills |
+|---|---|---|---|
+| Planning & Routing | Plan, clarify, and route implementation work. | `architecture`, `brainstorming`, `planning`, `repo-onboarding` | `app-builder`, `parallel-agents` |
+| Backend & Platform | API, database, and platform-specific patterns. | `api-patterns`, `database-design` | `mcp-builder`, `nodejs-best-practices`, `python-patterns`, `rust-pro` |
+| Frontend & UI | Web and mobile UI design and frameworks. | `frontend-design`, `tailwind-patterns`, `web-design-guidelines` | `game-development`, `i18n-localization`, `mobile-design`, `nextjs-react-expert` |
+| Debugging & Review | Evidence-based debugging and code review. | `code-review`, `debugging` | — |
+| Testing & Validation | Unit, integration, and validation strategies. | `lint-and-validate`, `test-hardening`, `testing` | `tdd-workflow`, `webapp-testing` |
+| Docs, Delivery & Operations | Documentation, deployment, and operational process. | `documentation`, `release-deployment` | `doc`, `mcp-onboarding`, `server-management` |
+| Security, Performance & Discoverability | Security review, profiling, and search optimization. | `security-review` | `geo-fundamentals`, `performance-profiling`, `red-team-tactics`, `seo-fundamentals` |
+| Shell & Environment | Shell scripting and OS-specific patterns. | — | `bash-linux`, `powershell-windows` |
+
+- **Core**: installed by default with `codex-kit init`.
+- **Optional**: installed through a profile or `codex-kit install skill <name>`.
+
+## Profiles
+
+Profiles are named bundles that install core skills plus a curated set of optional skills in one step:
 
 ```bash
-npx @longkunz/codex-kit sync-codex
+codex-kit init --profile backend-node
 ```
 
-To install the shipped skills into local Codex:
+| Profile | Optional skills included |
+|---|---|
+| `backend-node` | `nodejs-best-practices` |
+| `backend-python` | `python-patterns` |
+| `rust` | `rust-pro` |
+| `frontend-framework` | `i18n-localization`, `nextjs-react-expert`, `webapp-testing` |
+| `mobile` | `mobile-design` |
+| `game` | `game-development` |
+| `mcp` | `mcp-builder`, `mcp-onboarding` |
+| `security-advanced` | `red-team-tactics` |
+| `performance` | `performance-profiling` |
+| `operations` | `bash-linux`, `powershell-windows`, `server-management` |
+| `discoverability` | `geo-fundamentals`, `seo-fundamentals` |
+| `documents` | `doc` |
+| `tdd` | `tdd-workflow` |
+| `scaffolding` | `app-builder` |
+
+`parallel-agents` is an optional skill that does not belong to any profile. Install it directly:
 
 ```bash
-npx @longkunz/codex-kit install --target skills --scope local
+codex-kit install skill parallel-agents
 ```
 
-By default, local skills are installed into:
+## Automatic Skill Detection
 
-```text
-${CODEX_HOME:-~/.codex}/skills
-```
+`codex-kit autoskills` detects the repository's technology stack and installs matching skills from Codex Kit's canonical catalog.
 
-## Autoskills
+It is an installation helper. It does not control which skill Codex activates while responding to a prompt.
 
-Inspired by [midudev/autoskills](https://github.com/midudev/autoskills), Codex Kit ships its own auto-detection command. Instead of pulling from third-party registries, it scans the project stack and installs only the relevant skills from Codex Kit's audited catalog.
+Preview the detected technologies and selected skills without writing files:
 
 ```bash
-npx @longkunz/codex-kit autoskills
-npx @longkunz/codex-kit autoskills --scope local
-npx @longkunz/codex-kit autoskills --dry-run
+codex-kit autoskills --dry-run
 ```
 
-The scanner inspects `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, framework config files (Next.js, Tailwind, Playwright, Vitest, ...) and file extensions (`.sh`, `.ps1`, `.tsx`, ...). It also recognizes cross-stack combos such as `React + Tailwind CSS`, `Next.js + Playwright`, or `FastAPI + SQLAlchemy`, and adds a small "frontend bonus" (design + SEO) when a web frontend is detected.
-
-Project-scope installs land in `.agents/skills/<skill>/` next to the rest of the Codex Kit scaffold, and write a digest of the run to `.codex-kit/autoskills-lock.json`. Local-scope installs land in `${CODEX_HOME:-~/.codex}/skills`. Pass `--force` to overwrite existing files; the default behavior is non-destructive.
-
-To browse or search the shipped catalog:
+Install the detected skills:
 
 ```bash
-npx @longkunz/codex-kit list --target skills
-npx @longkunz/codex-kit list --target skills --query frontend
-npx @longkunz/codex-kit list --target skills --scope local
+codex-kit autoskills
 ```
 
-The bundled plugin can also help map natural requests such as "cài skill frontend" or "liệt kê skills debug" to the right Codex Kit commands.
+For example, a project using React, Next.js, and Playwright may select:
+
+- `frontend-design`
+- `nextjs-react-expert`
+- `seo-fundamentals`
+- `testing`
+- `web-design-guidelines`
+- `webapp-testing`
+
+The command reports both the number of selected skills and the number of files written. A single skill may contain multiple files, such as `SKILL.md`, references, scripts, agent metadata, and verification instructions.
+
+Autoskills scans signals such as:
+
+- `package.json`
+- `pyproject.toml`
+- `Cargo.toml`
+- `go.mod`
+- `Gemfile`
+- framework and testing configuration files
+- source extensions such as `.tsx`, `.sh`, and `.ps1`
+
+It only installs skills shipped in Codex Kit's audited catalog. It does not download skills from third-party registries or resolve legacy skill names.
+
+Detected skills are installed into `.agents/skills/`, and the detection summary is recorded in `.codex-kit/autoskills-lock.json`.
+
+Use `--force` only when existing managed skill files should be refreshed.
+
+To browse or search the shipped catalog, see `codex-kit list --target skills` in the [Command Quick Reference](#command-quick-reference).
 
 ## Codex Rules
 

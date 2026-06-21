@@ -33,7 +33,7 @@ npx @longkunz/codex-kit init --path ./my-project
 ## Bạn nhận được gì
 
 - tài liệu định tuyến gốc: `AGENTS.md`, `ARCHITECTURE.md`, `AGENT_FLOW.md`
-- Hơn 40 skill được đóng gói trong `.agents/skills`
+- catalog gồm 38 skill (17 core + 21 optional), với 17 skill core được cài mặc định
 - 16 playbook workflow trong `.agents/workflows`
 - 16 subagent tập trung trong `.codex/agents`
 - dữ liệu UI/UX chia sẻ và scripts trong `.agents/.shared`
@@ -42,86 +42,45 @@ npx @longkunz/codex-kit init --path ./my-project
 - các project hooks (tùy chọn) trong `.codex/hooks.json` và `.codex/hooks/`
 - theo dõi các file được quản lý trong `.codex-kit/manifest.json`
 
-## CLI
+## Tham chiếu lệnh nhanh
 
-Các lệnh chính:
+| Nhóm | Lệnh | Mô tả |
+|---|---|---|
+| Thiết lập | `codex-kit init` | Khởi tạo dự án với 17 skill core. |
+| Thiết lập | `codex-kit init --profile <name>` | Khởi tạo skill core kèm theo profile tùy chọn. |
+| Thiết lập | `codex-kit init --include-plugin` | Khởi tạo kèm workspace plugin. |
+| Thiết lập | `codex-kit init --include-hooks` | Khởi tạo kèm project hooks. |
+| Thiết lập | `codex-kit init --all` | Khởi tạo với plugin và hooks. |
+| Thiết lập | `codex-kit setup-codex` | Thiết lập scaffold, workspace plugin và các skill core của dự án. |
+| Thiết lập | `codex-kit setup-codex --enable-memories` | Thiết lập toàn bộ kèm bật memories cục bộ người dùng. |
+| Skills | `codex-kit install skill <name>` | Cài đặt một skill theo tên. |
+| Skills | `codex-kit install --target skills` | Cài 17 skill core vào dự án hiện tại. |
+| Skills | `codex-kit install --target skills --profile <name>` | Cài đặt skill core + skill của profile. |
+| Skills | `codex-kit autoskills` | Phát hiện stack của project và cài các skill phù hợp từ catalog. |
+| Skills | `codex-kit autoskills --dry-run` | Xem trước công nghệ và skill được phát hiện mà không ghi file. |
+| Skills | `codex-kit sync --target skills` | Đồng bộ các canonical skill hiện đang cài trong dự án. |
+| Khám phá | `codex-kit list --target skills` | Liệt kê skill với thông tin tier và profile. |
+| Khám phá | `codex-kit list --target skills --query <text>` | Tìm kiếm trong danh mục skill. |
+| Khám phá | `codex-kit list --target plugin` | Hiển thị trạng thái workspace plugin. |
+| Khám phá | `codex-kit list --target mcp` | Hiển thị trạng thái MCP bundle. |
+| Khám phá | `codex-kit list --target memories` | Hiển thị trạng thái memories cục bộ. |
+| Khám phá | `codex-kit status` | Hiển thị trạng thái các file được quản lý. |
+| Bảo trì | `codex-kit update` | Làm mới các file scaffold. |
+| Bảo trì | `codex-kit sync-codex` | Đồng bộ scaffold + plugin + skill sau khi nâng cấp. |
+| Bảo trì | `codex-kit sync --target plugin` | Đồng bộ workspace plugin. |
+| Bảo trì | `codex-kit sync --target mcp` | Đồng bộ MCP bundle trong cấu hình dự án. |
+| Bảo trì | `codex-kit sync --target hooks` | Đồng bộ project hooks. |
+| Thành phần | `codex-kit install --target plugin` | Chỉ cài đặt workspace plugin. |
+| Thành phần | `codex-kit install --target mcp` | Cài MCP bundle vào cấu hình dự án. |
+| Thành phần | `codex-kit install --target mcp --scope local` | Cài MCP bundle vào cấu hình Codex cục bộ người dùng. |
+| Thành phần | `codex-kit install --target hooks` | Cài đặt project hooks. |
+| Thành phần | `codex-kit install --target memories --scope local` | Bật memories cục bộ người dùng. |
+| Chẩn đoán | `codex-kit doctor` | Kiểm tra sức khỏe dự án Codex Kit. |
+| Chẩn đoán | `codex-kit doctor --fix` | Sửa chữa an toàn các vấn đề phát hiện được. |
+| Chẩn đoán | `codex-kit doctor --json` | Xuất kết quả kiểm tra dưới dạng JSON. |
+| Chẩn đoán | `codex-kit doctor --strict` | Coi cảnh báo là lỗi. |
 
-```bash
-codex-kit init
-codex-kit init --include-plugin
-codex-kit init --all
-codex-kit install
-codex-kit install --target plugin
-codex-kit install --target mcp
-codex-kit install --target skills
-codex-kit install --target skills --scope local
-codex-kit install --target hooks
-codex-kit install --target memories --scope local
-codex-kit update
-codex-kit sync --target mcp
-codex-kit sync --target plugin
-codex-kit sync --target skills
-codex-kit sync --target skills --scope local
-codex-kit sync --target hooks
-codex-kit list --target skills
-codex-kit list --target skills --query frontend
-codex-kit list --target skills --scope local
-codex-kit list --target plugin
-codex-kit list --target mcp
-codex-kit remove --target skills --scope local --skills ,planning
-codex-kit autoskills
-codex-kit autoskills --scope local
-codex-kit autoskills --dry-run
-codex-kit setup-codex
-codex-kit setup-codex --enable-memories
-codex-kit sync-codex
-codex-kit status
-codex-kit doctor
-codex-kit doctor --json
-codex-kit doctor --fix
-```
-
-Các ví dụ phổ biến:
-
-```bash
-codex-kit init --path ./my-project
-codex-kit init --path ./my-project --include-plugin
-codex-kit init --path ./my-project --all
-codex-kit install --path ./my-project
-codex-kit install --target plugin
-codex-kit install --target mcp
-codex-kit install --target skills
-codex-kit install --target hooks
-codex-kit install --target memories --scope local
-codex-kit doctor
-
-codex-kit list --target skills
-codex-kit list --target skills --query frontend
-codex-kit list --target skills --scope local
-codex-kit list --target mcp
-
-codex-kit install --target skills --scope local
-codex-kit install --target skills --scope local --skills ,planning
-codex-kit sync --target skills --scope local --skills ,planning
-codex-kit remove --target skills --scope local --skills ,planning
-
-codex-kit setup-codex
-codex-kit setup-codex --enable-memories
-codex-kit sync-codex
-```
-
-Các bí danh (alias) cũ vẫn hoạt động:
-
-```bash
-codex-kit install --target project
-codex-kit sync --target project
-codex-kit list-skills
-codex-kit search-skills frontend
-codex-kit list-installed-skills
-codex-kit install-skills
-codex-kit sync-skills
-codex-kit remove-skills --skills ,planning
-```
+> Xem [Tham chiếu lệnh nhanh](#tham-chiếu-lệnh-nhanh) cho danh sách đầy đủ. Để xem chi tiết tùy chọn, chạy `codex-kit --help`.
 
 ## Tích hợp Codex
 
@@ -137,16 +96,8 @@ Có hai phạm vi cài đặt khác nhau:
 - cài đặt cục bộ dự án có trọng tâm: `install --target plugin` hoặc `install --target skills` chỉ thêm những phần đó vào repository hiện tại
 - hooks dự án: `install --target hooks` tạo `.codex/hooks.json` và các script hook an toàn cục bộ
 - MCP dự án: `install --target mcp` ghi gói MCP được cung cấp vào `.codex/config.toml`
-- cục bộ người dùng: danh mục skill được cài đặt vào `${CODEX_HOME:-~/.codex}/skills`
 - MCP người dùng: `install --target mcp --scope local` ghi gói MCP được cung cấp vào `${CODEX_HOME:-~/.codex}/config.toml`
 - bộ nhớ người dùng: `install --target memories --scope local` chỉ cập nhật `${CODEX_HOME:-~/.codex}/config.toml`
-
-Để khởi tạo dự án:
-
-```bash
-npx @longkunz/codex-kit init
-npx @longkunz/codex-kit install
-```
 
 Bộ khung mặc định không bao gồm workspace plugin và hooks. Bạn có thể thêm plugin trong quá trình init, hoặc thêm mọi gói bổ sung của dự án:
 
@@ -156,12 +107,6 @@ npx @longkunz/codex-kit init --all
 ```
 
 `--all` bao gồm cả plugin và project hooks. Nó không kích hoạt memories người dùng cục bộ.
-
-Để chỉ cài đặt workspace plugin vào dự án hiện tại:
-
-```bash
-npx @longkunz/codex-kit install --target plugin
-```
 
 Plugin sau khi cài đặt bao gồm Codex Kit skill, các hook cục bộ an toàn, và cấu hình MCP `context7`. Các file hook không thực hiện các cuộc gọi mạng hoặc ghi log nội dung prompt, nội dung file, hay các giá trị môi trường.
 
@@ -174,18 +119,6 @@ codex plugin add codex-kit@local-plugins
 
 Chạy lệnh `codex-kit doctor` trước để xác thực tên marketplace, đường dẫn mã nguồn, chính sách (policy), siêu dữ liệu plugin, các hook được tích hợp, cấu hình MCP, và phiên bản package. Codex Kit chuẩn bị các file marketplace cục bộ nhưng không sửa đổi registry plugin Codex toàn cầu của người dùng.
 
-Để chỉ cài đặt các skill của dự án vào dự án hiện tại:
-
-```bash
-npx @longkunz/codex-kit install --target skills
-```
-
-Để cài đặt gói hook an toàn tùy chọn vào dự án hiện tại:
-
-```bash
-npx @longkunz/codex-kit install --target hooks
-```
-
 Gói hook tạo ra:
 
 - `.codex/hooks.json`
@@ -196,23 +129,10 @@ Gói hook tạo ra:
 
 Hooks an toàn theo mặc định: chúng chạy trên máy cục bộ, không thực hiện các cuộc gọi mạng và không log nội dung prompt, nội dung file hay giá trị môi trường. Các file hook hiện tại sẽ không bị ghi đè trừ khi bạn dùng tham số `--force`.
 
-Để cài đặt MCP bundle được cung cấp vào dự án hoặc cấu hình Codex cục bộ:
-
-```bash
-npx @longkunz/codex-kit install --target mcp
-npx @longkunz/codex-kit install --target mcp --scope local
-```
-
 Gói MCP hiện tại bao gồm:
 
 - `context7` cho tài liệu dành cho nhà phát triển
 - ví dụ MCP MySQL được comment qua `@benborla29/mcp-server-mysql`; chỉ bỏ comment khi bạn thực sự muốn bật MySQL MCP
-
-Để thực hiện thiết lập toàn bộ cục bộ trong một lệnh cho repository hiện tại:
-
-```bash
-npx @longkunz/codex-kit setup-codex
-```
 
 Memories (bộ nhớ) là tùy chọn (opt-in) và chỉ khả dụng ở phía cục bộ người dùng (user-local). Để bật tính năng này:
 
@@ -235,47 +155,101 @@ disable_on_external_context = true
 
 Bộ khung dự án không bao giờ mặc định kích hoạt memories và không bao giờ ghi lại nội dung memory cá nhân.
 
-Sau khi nâng cấp Codex Kit, hãy đồng bộ lại cả plugin workspace và các skill dự án bằng lệnh:
+## Danh mục skill theo category
+
+Category nhóm skill theo chức năng. Profile là gói cài đặt dành cho optional skills; category không nhất thiết tương ứng với một profile.
+
+| Category | Mục đích | Skill core | Skill optional |
+|---|---|---|---|
+| Planning & Routing | Lên kế hoạch, làm rõ và định tuyến công việc. | `architecture`, `brainstorming`, `planning`, `repo-onboarding` | `app-builder`, `parallel-agents` |
+| Backend & Platform | API, database và các pattern platform. | `api-patterns`, `database-design` | `mcp-builder`, `nodejs-best-practices`, `python-patterns`, `rust-pro` |
+| Frontend & UI | Thiết kế giao diện web và mobile. | `frontend-design`, `tailwind-patterns`, `web-design-guidelines` | `game-development`, `i18n-localization`, `mobile-design`, `nextjs-react-expert` |
+| Debugging & Review | Debug dựa trên bằng chứng và code review. | `code-review`, `debugging` | — |
+| Testing & Validation | Chiến lược unit, integration và validation. | `lint-and-validate`, `test-hardening`, `testing` | `tdd-workflow`, `webapp-testing` |
+| Docs, Delivery & Operations | Tài liệu, triển khai và vận hành. | `documentation`, `release-deployment` | `doc`, `mcp-onboarding`, `server-management` |
+| Security, Performance & Discoverability | Bảo mật, profiling và tối ưu tìm kiếm. | `security-review` | `geo-fundamentals`, `performance-profiling`, `red-team-tactics`, `seo-fundamentals` |
+| Shell & Environment | Shell scripting và pattern theo hệ điều hành. | — | `bash-linux`, `powershell-windows` |
+
+- **Core**: được cài mặc định bằng `codex-kit init`.
+- **Optional**: được cài qua profile hoặc `codex-kit install skill <name>`.
+
+## Profiles
+
+Profile là các gói cài đặt được đặt tên sẵn, cài đặt skill core cùng với một bộ skill optional được chọn lọc trong một bước:
 
 ```bash
-npx @longkunz/codex-kit sync-codex
+codex-kit init --profile backend-node
 ```
 
-Để cài đặt các skill vào Codex người dùng cục bộ:
+| Profile | Skill optional bao gồm |
+|---|---|
+| `backend-node` | `nodejs-best-practices` |
+| `backend-python` | `python-patterns` |
+| `rust` | `rust-pro` |
+| `frontend-framework` | `i18n-localization`, `nextjs-react-expert`, `webapp-testing` |
+| `mobile` | `mobile-design` |
+| `game` | `game-development` |
+| `mcp` | `mcp-builder`, `mcp-onboarding` |
+| `security-advanced` | `red-team-tactics` |
+| `performance` | `performance-profiling` |
+| `operations` | `bash-linux`, `powershell-windows`, `server-management` |
+| `discoverability` | `geo-fundamentals`, `seo-fundamentals` |
+| `documents` | `doc` |
+| `tdd` | `tdd-workflow` |
+| `scaffolding` | `app-builder` |
+
+`parallel-agents` là skill optional không thuộc profile nào. Cài đặt trực tiếp bằng:
 
 ```bash
-npx @longkunz/codex-kit install --target skills --scope local
+codex-kit install skill parallel-agents
 ```
 
-Theo mặc định, skill cục bộ được cài đặt vào thư mục:
+## Tự động phát hiện và cài skill
 
-```text
-${CODEX_HOME:-~/.codex}/skills
-```
+`codex-kit autoskills` phát hiện công nghệ đang được sử dụng trong repository và cài các skill phù hợp từ canonical catalog của Codex Kit.
 
-## Autoskills
+Đây là công cụ hỗ trợ cài đặt. Nó không quyết định skill nào được Codex kích hoạt trong lúc xử lý một prompt.
 
-Lấy cảm hứng từ [midudev/autoskills](https://github.com/midudev/autoskills), Codex Kit đi kèm với lệnh tự động phát hiện riêng. Thay vì kéo từ các registry bên thứ ba, nó quét bộ công cụ (stack) dự án và chỉ cài đặt các skill có liên quan từ danh mục đã được kiểm duyệt của Codex Kit.
+Xem trước công nghệ được phát hiện và các skill sẽ được chọn mà không ghi file:
 
 ```bash
-npx @longkunz/codex-kit autoskills
-npx @longkunz/codex-kit autoskills --scope local
-npx @longkunz/codex-kit autoskills --dry-run
+codex-kit autoskills --dry-run
 ```
 
-Trình quét kiểm tra các file `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, cấu hình framework (Next.js, Tailwind, Playwright, Vitest, ...) và phần mở rộng file (`.sh`, `.ps1`, `.tsx`, ...). Nó cũng nhận ra các sự kết hợp stack khác nhau chẳng hạn như `React + Tailwind CSS`, `Next.js + Playwright`, hoặc `FastAPI + SQLAlchemy`, và thêm "bonus frontend" (design + SEO) khi phát hiện có web frontend.
-
-Cài đặt ở phạm vi dự án sẽ lưu vào `.agents/skills/<skill>/` cùng với phần còn lại của Codex Kit scaffold, và ghi báo cáo tóm tắt quá trình thực thi vào `.codex-kit/autoskills-lock.json`. Cài đặt ở phạm vi local lưu vào `${CODEX_HOME:-~/.codex}/skills`. Dùng tham số `--force` để ghi đè các tệp hiện tại; hành vi mặc định là không phá hủy.
-
-Để duyệt qua hoặc tìm kiếm trong danh mục được cung cấp:
+Cài các skill được phát hiện:
 
 ```bash
-npx @longkunz/codex-kit list --target skills
-npx @longkunz/codex-kit list --target skills --query frontend
-npx @longkunz/codex-kit list --target skills --scope local
+codex-kit autoskills
 ```
 
-Plugin đi kèm cũng có thể giúp ánh xạ các yêu cầu ngôn ngữ tự nhiên như "cài skill frontend" hoặc "liệt kê skills debug" vào đúng lệnh của Codex Kit.
+Ví dụ, một project dùng React, Next.js và Playwright có thể được chọn các skill:
+
+- `frontend-design`
+- `nextjs-react-expert`
+- `seo-fundamentals`
+- `testing`
+- `web-design-guidelines`
+- `webapp-testing`
+
+Command sẽ báo cả số skill được chọn và tổng số file được ghi. Một skill có thể chứa nhiều file như `SKILL.md`, reference, script, metadata agent và hướng dẫn verification.
+
+Autoskills có thể quét các dấu hiệu như:
+
+- `package.json`
+- `pyproject.toml`
+- `Cargo.toml`
+- `go.mod`
+- `Gemfile`
+- file cấu hình framework hoặc testing
+- phần mở rộng source như `.tsx`, `.sh`, `.ps1`
+
+Autoskills chỉ cài các skill nằm trong audited canonical catalog của Codex Kit. Nó không tải skill từ registry bên thứ ba và không resolve tên skill legacy.
+
+Các skill được cài vào `.agents/skills/`. Tóm tắt kết quả phát hiện được ghi vào `.codex-kit/autoskills-lock.json`.
+
+Chỉ dùng `--force` khi cần refresh các managed skill file hiện có.
+
+Để duyệt qua hoặc tìm kiếm trong danh mục, xem `codex-kit list --target skills` trong [Tham chiếu lệnh nhanh](#tham-chiếu-lệnh-nhanh).
 
 ## Codex Rules
 
