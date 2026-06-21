@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-06-21
+
+### Changed
+
+* Introduced a safe, declarative workflow retirement migration engine.
+* Merged 9 legacy workflows (`brainstorm.md`, `test.md`, `orchestrate.md`, `plan.md`, `deploy.md`, `ship.md`, `verify.md`, `debug.md`, `review.md`) directly into their corresponding skills, reducing the cognitive load of navigating the repository.
+* The repository now tracks and distributes only 7 focused workflows instead of 16.
+* Consolidated release/deployment constraints and test-hardening policies inside cross-skill routing rules instead of standalone workflows.
+
+## [1.2.0] - 2026-06-20
+
+### Added
+
+* Added tiered skill catalog and profile installs. Users can now install a curated set of optional skills with `--profile <name>` (e.g., `backend-node`, `frontend-framework`, `rust`, etc.).
+* Added the `autoskills` command to automatically detect the repository's technology stack and install matching canonical skills from the catalog.
+
+### Changed
+
+* Reorganized the README command list and skill references to improve discoverability.
+* Restructured skill documentation to explicitly clarify core vs. optional skills.
+
 ## [1.1.0] - 2026-06-20
 
 ### Changed
