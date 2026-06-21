@@ -34,7 +34,7 @@ npx @longkunz/codex-kit init --path ./my-project
 
 - root routing docs: `AGENTS.md`, `ARCHITECTURE.md`, `AGENT_FLOW.md`
 - a catalog of 38 shipped skills (17 core + 21 optional), with 17 core skills installed by default
-- 16 workflow playbooks in `.agents/workflows`
+- 7 workflow playbooks in `.agents/workflows`
 - 16 focused subagents in `.codex/agents`
 - shared UI/UX data and scripts in `.agents/.shared`
 - project-scoped Codex config in `.codex/config.toml`

@@ -34,7 +34,7 @@ npx @longkunz/codex-kit init --path ./my-project
 
 - tài liệu định tuyến gốc: `AGENTS.md`, `ARCHITECTURE.md`, `AGENT_FLOW.md`
 - catalog gồm 38 skill (17 core + 21 optional), với 17 skill core được cài mặc định
-- 16 playbook workflow trong `.agents/workflows`
+- 7 playbook workflow trong `.agents/workflows`
 - 16 subagent tập trung trong `.codex/agents`
 - dữ liệu UI/UX chia sẻ và scripts trong `.agents/.shared`
 - cấu hình Codex trong phạm vi dự án ở `.codex/config.toml`
