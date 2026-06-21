@@ -96,7 +96,7 @@ During execution:
 - do not run risky scripts or destructive commands without explicit approval
 
 If a skill includes helper scripts, they are optional and should be proposed, not silently executed.
-If a skill includes `verify.md`, `handoff.md`, or a checklist file, use it as the output contract for that task shape.
+If a skill includes `handoff.md` or a checklist file, use it as the output contract for that task shape.
 
 ## 6. Validation Layer
 
@@ -112,7 +112,7 @@ Use `check.md` for normal development:
 
 ### Verify
 
-Use `verify.md` for higher-risk work:
+Escalate to `test-hardening` and `release-deployment` for higher-risk work:
 
 - broader automated coverage
 - config and migration review

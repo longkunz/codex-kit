@@ -88,7 +88,7 @@ Skills live in `.agents/skills/<name>/SKILL.md`.
 Each skill should stay narrow and reusable. A skill may optionally include:
 
 - `agents/openai.yaml` for invocation policy and explicit agent behavior
-- task-specific companion files such as `verify.md`, `handoff.md`, and rollout checklists
+- task-specific companion files such as `handoff.md` and rollout checklists
 - `references/` for templates, examples, or detailed guidance
 - `scripts/` for optional helpers
 - `assets/` for support files

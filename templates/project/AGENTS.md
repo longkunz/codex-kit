@@ -111,7 +111,7 @@ Each skill may include:
 
 - `SKILL.md` for the instruction contract
 - `agents/openai.yaml` for invocation policy when the skill bundles deeper guidance
-- task-specific files such as `verify.md`, `handoff.md`, or checklists for specialized proof
+- task-specific files such as `handoff.md` or checklists for specialized proof
 - `references/` for templates and deeper guidance
 - `scripts/` for optional helpers
 - `assets/` for supporting files
