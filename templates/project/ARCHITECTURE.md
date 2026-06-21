@@ -40,11 +40,10 @@ The goal is to keep the system small, composable, and explicit. Skills provide k
 │   └── workflows/
 │       ├── check.md
 │       ├── create.md
-│       ├── deploy.md
 │       ├── enhance.md
 │       ├── plan.md
 │       ├── preview.md
-│       ├── ship.md
+│       ├── review.md
 │       ├── status.md
 │       ├── ui-ux-pro-max.md
 │       └── verify.md

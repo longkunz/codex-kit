@@ -42,9 +42,7 @@ Once the primary mode is clear, route to the narrowest workflow:
 | project or task status request | `status.md` |
 | quick validation | `check.md` |
 | deeper release validation | `verify.md` |
-| deployment preparation or execution | `deploy.md` |
 | review code changes or PRs | `review.md` |
-| release or handoff summary | `ship.md` |
 
 The workflow gives the process skeleton for the task.
 

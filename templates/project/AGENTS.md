@@ -67,8 +67,7 @@ When delegating to a subagent, include the preferred skill set in the task hando
 - Use `.agents/workflows/check.md` for fast local validation.
 - Load `testing` when test execution or test authoring is the main task.
 - Use `.agents/workflows/verify.md` for deeper release readiness checks.
-- Use `.agents/workflows/deploy.md` for deployment preparation or execution.
-- Use `.agents/workflows/ship.md` when preparing a merge, release, or deployment summary.
+- Load `release-deployment` for deployment preparation, execution, or release handoff summary.
 - Use `devops_engineer` for CI, environment, and deployment-specific work.
 - Load `test-hardening`, `documentation`, `mcp-onboarding`, and `release-deployment` when the task affects rollout, migrations, verification depth, or deploy risk.
   Preferred pairings:
