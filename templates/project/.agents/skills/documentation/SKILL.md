@@ -19,4 +19,5 @@ When writing documentation, you must:
 - **Identify the reader**: Newcomer, operator, maintainer, or contributor.
 - **Write the shortest path**: Get the reader to success.
 - **Include specifics**: Prerequisites, exact commands, expected results, and failure recovery.
+- **Ensure accuracy**: Ensure that operational or release documentation accurately reflects verified behavior when documentation is part of the requested deliverable.
 - **Avoid generalizations**: Do not copy marketing phrasing or hide breaking changes in long prose.

@@ -76,6 +76,24 @@ description: Use for ideation, solution exploration, or clarifying ambiguous req
 
 ---
 
+## 💡 Option Generation & Recommendation
+
+When the user asks for options, trade-offs, or architecture exploration:
+
+1. **Restate Context**: Briefly restate the goal, audience, and success criteria.
+2. **Present 2-4 Concrete Options**: Provide realistic options, avoiding abstract principles.
+3. **Format Each Option**:
+   - What it is and where it fits
+   - Key advantages (Pros)
+   - Key drawbacks (Cons)
+   - Rough implementation effort
+4. **Make a Clear Recommendation**: If one option is clearly dominant, say so directly and explain why.
+5. **Next Steps**: End with the exact decision required from the user to move into the planning or implementation phase.
+
+**Rule**: Do NOT write code during brainstorming unless the user explicitly pivots to implementation.
+
+---
+
 ## Progress Reporting (PRINCIPLE-BASED)
 
 **PRINCIPLE:** Transparency builds trust. Status must be visible and actionable.

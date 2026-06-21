@@ -106,22 +106,13 @@ const STATIC_PROFILES = {
 };
 
 const EXPECTED_WORKFLOWS = [
-  "brainstorm.md",
   "check.md",
   "create.md",
-  "debug.md",
-  "deploy.md",
   "enhance.md",
   "figma-to-code.md",
-  "orchestrate.md",
-  "plan.md",
   "preview.md",
-  "review.md",
-  "ship.md",
   "status.md",
-  "test.md",
-  "ui-ux-pro-max.md",
-  "verify.md"
+  "ui-ux-pro-max.md"
 ].sort();
 
 async function withTempProject(fn) {
@@ -404,12 +395,10 @@ test("unknown skill exits without partial install", async () => {
   });
 });
 
-test("workflow bundle remains 16 independent workflows with parallel-agents intact", async () => {
+test("workflow bundle remains 7 independent workflows with parallel-agents intact", async () => {
   assert.deepEqual((await readdir(workflowRoot)).sort(), EXPECTED_WORKFLOWS);
-  assert.equal((await readdir(workflowRoot)).length, 16);
+  assert.equal((await readdir(workflowRoot)).length, 7);
   assert.ok((await readdir(skillsRoot)).includes("parallel-agents"));
-  assert.ok((await readdir(workflowRoot)).includes("orchestrate.md"));
-  assert.equal((await readdir(skillsRoot)).includes("orchestrate.md"), false);
 });
 
 test("planning links an implementation plan reference", async () => {

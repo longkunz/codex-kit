@@ -18,8 +18,8 @@ When delegating to a subagent, include the preferred skill set in the task hando
 
 ### Planning and Discovery
 
-- Use `.agents/workflows/brainstorm.md` for vague or strategic requests.
-- Use `.agents/workflows/plan.md` when the user wants a task breakdown before code changes.
+- Load `brainstorming` for vague or strategic requests.
+- Load `planning` when the user wants a task breakdown before code changes.
 - Prefer the `planner` subagent for decomposition, success criteria, and sequencing.
 - Prefer the `explorer` subagent when repository mapping or dependency tracing is the immediate need.
 - Load `repo-onboarding` when entering an unfamiliar repository and a fast, reliable codebase map is needed first.
@@ -42,7 +42,6 @@ When delegating to a subagent, include the preferred skill set in the task hando
 
 ### Debugging
 
-- Use `.agents/workflows/debug.md` for bug investigation and root-cause isolation.
 - Prefer the `debugger` subagent for evidence gathering before making changes.
 - Load `debugging`, and optionally `testing` to confirm the failure mode.
   Preferred pairings:
@@ -51,7 +50,6 @@ When delegating to a subagent, include the preferred skill set in the task hando
 
 ### Review and Documentation
 
-- Use `.agents/workflows/review.md` for code review, patch review, and regression checks.
 - Use the `reviewer` subagent for correctness, security, and missing tests.
 - Use the `docs_researcher` subagent when framework or API behavior must be verified.
 - Use `security_auditor`, `documentation_writer`, `performance_optimizer`, or `seo_specialist` when the task has a specialized review or improvement axis.
@@ -67,11 +65,20 @@ When delegating to a subagent, include the preferred skill set in the task hando
 ### Validation and Release
 
 - Use `.agents/workflows/check.md` for fast local validation.
-- Use `.agents/workflows/test.md` when test execution or test authoring is the main task.
-- Use `.agents/workflows/verify.md` for deeper release readiness checks.
-- Use `.agents/workflows/deploy.md` for deployment preparation or execution.
-- Use `.agents/workflows/ship.md` when preparing a merge, release, or deployment summary.
+- Load `testing` when test execution or test authoring is the main task.
+- Load `release-deployment` for deployment preparation, execution, or release handoff summary.
 - Use `devops_engineer` for CI, environment, and deployment-specific work.
+- Validation Routing Policy:
+  - Route routine checks to the smallest relevant validation skill.
+  - Escalate release-sensitive or cross-system changes to `test-hardening` and `release-deployment`.
+  - Route browser-visible behavior to `webapp-testing` if applicable.
+- Verification Results Policy: When verifying, the results must report:
+  - Commands/checks performed.
+  - Outcomes.
+  - Skipped checks.
+  - Blockers or warnings.
+  - Anything still unverified.
+  - Residual risk.
 - Load `test-hardening`, `documentation`, `mcp-onboarding`, and `release-deployment` when the task affects rollout, migrations, verification depth, or deploy risk.
   Preferred pairings:
   `test_writer` -> `test-hardening`, `testing`, `tdd-workflow`, `webapp-testing`
@@ -104,7 +111,7 @@ Each skill may include:
 
 - `SKILL.md` for the instruction contract
 - `agents/openai.yaml` for invocation policy when the skill bundles deeper guidance
-- task-specific files such as `verify.md`, `handoff.md`, or checklists for specialized proof
+- task-specific files such as `handoff.md` or checklists for specialized proof
 - `references/` for templates and deeper guidance
 - `scripts/` for optional helpers
 - `assets/` for supporting files

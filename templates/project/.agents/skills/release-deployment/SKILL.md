@@ -12,6 +12,7 @@ You must read and follow these deployment standards:
 - [Readiness Checklist](references/readiness-checklist.md)
 - [Deployment Process](references/deployment-process.md)
 - [Rollback Procedures](references/rollback.md)
+- [Release Handoff](references/release-handoff.md)
 
 ## Requirements
 When handling deployments, you must cover:
@@ -20,3 +21,10 @@ When handling deployments, you must cover:
 - **Rollout sequencing**: Order flag flips, migrations, and code deploys correctly.
 - **Verification**: Actively monitor health endpoints, error logs, and key flows immediately after deployment.
 - **Rollback safety**: Confirm that reverting the code will not leave the system broken due to irreversible side effects.
+
+## Execution Rules
+When executing a deployment or check, always state the explicit deployment mode: `readiness/check`, `preview or staging`, `production`, or `rollback`.
+1. **Confirm Context**: Confirm the target environment and deployment platform.
+2. **Execute Accurately**: Build, package, and deploy using the real project path and platform-specific commands.
+3. **Report Action**: Clearly report the exact command or pipeline used.
+4. **Report Output**: Record the deployed version, URL (when applicable), smoke/health check results, and rollback readiness/result.

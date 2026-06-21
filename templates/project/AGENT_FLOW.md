@@ -34,22 +34,14 @@ Once the primary mode is clear, route to the narrowest workflow:
 
 | Request Type | Workflow |
 | --- | --- |
-| vague feature or strategy request | `brainstorm.md` |
-| user asks for an implementation plan | `plan.md` |
 | new feature or structured code work | `create.md` |
 | iterative change to an existing feature | `enhance.md` |
-| bug or regression investigation | `debug.md` |
-| review or audit request | `review.md` |
 | UI or UX design direction work | `ui-ux-pro-max.md` |
 | implement an existing Figma design in code | `figma-to-code.md` |
-| test creation or test execution | `test.md` |
 | local preview management | `preview.md` |
 | project or task status request | `status.md` |
 | quick validation | `check.md` |
-| deeper release validation | `verify.md` |
-| deployment preparation or execution | `deploy.md` |
-| multi-subagent coordination | `orchestrate.md` |
-| release or handoff summary | `ship.md` |
+| review code changes or PRs | `review.md` |
 
 The workflow gives the process skeleton for the task.
 
@@ -59,6 +51,7 @@ After workflow selection, load only the skills that improve the current task.
 
 Examples:
 
+- `brainstorming` for vague or strategy requests
 - `planning` for decomposition and sequencing
 - `repo-onboarding` for first-pass repository mapping
 - `debugging` for reproduction-led debugging
@@ -103,11 +96,11 @@ During execution:
 - do not run risky scripts or destructive commands without explicit approval
 
 If a skill includes helper scripts, they are optional and should be proposed, not silently executed.
-If a skill includes `verify.md`, `handoff.md`, or a checklist file, use it as the output contract for that task shape.
+If a skill includes `handoff.md` or a checklist file, use it as the output contract for that task shape.
 
 ## 6. Validation Layer
 
-Validation happens in two tiers, with optional `test.md` when test authoring or targeted execution is the main task.
+Validation happens in two tiers, and tests should be authored or executed via the `testing` skill when testing is the main focus.
 
 ### Check
 
@@ -119,7 +112,7 @@ Use `check.md` for normal development:
 
 ### Verify
 
-Use `verify.md` for higher-risk work:
+Escalate to `test-hardening` and `release-deployment` for higher-risk work:
 
 - broader automated coverage
 - config and migration review

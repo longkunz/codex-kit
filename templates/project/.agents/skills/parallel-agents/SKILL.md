@@ -26,6 +26,14 @@ This skill enables coordinating multiple specialized subagents through Codex-nat
 
 ---
 
+## 🛑 Orchestration Guardrails
+
+- **Main Thread Owns Critical Path**: The main agent must retain the immediate critical-path task. Do not delegate the immediate blocking task if you need the answer right away.
+- **Bounded Write Scope**: Do not allow multiple agents to edit the same write set (e.g., overlapping files) simultaneously. Assign disjoint code slices to parallel subagents to avoid merge conflicts.
+- **Complexity over Size**: Do not spawn subagents merely because a task is large. Only orchestrate if the work genuinely benefits from independent domains of expertise running concurrently.
+
+---
+
 ## Native Agent Invocation
 
 ### Single Agent

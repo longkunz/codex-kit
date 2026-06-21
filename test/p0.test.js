@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import crypto from "node:crypto";
 
 import {
   initProject,
@@ -743,5 +744,440 @@ test("doctor reports no failures after fresh init with Common Guidelines", async
     const rulesCheck = result.checks.find((c) => c.name === "rules" && c.status === "ok");
     assert.ok(rulesCheck);
     assert.match(rulesCheck.message, /2 rules file/);
+  });
+});
+
+// --- Migration Foundation tests ---
+
+const MOCK_RETIREMENT = [{
+  retiredIn: "1.3.0",
+  paths: [".agents/workflows/check.md"]
+}];
+
+test("migration: deletes managed unchanged workflow and its manifest entry", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const checkPath = path.join(targetDir, ".agents/workflows/check.md");
+    const existsBefore = await stat(checkPath).catch(() => null);
+    assert.ok(existsBefore);
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.deleted.includes(".agents/workflows/check.md"));
+    const existsAfter = await stat(checkPath).catch(() => null);
+    assert.equal(existsAfter, null);
+
+    const manifest = await readManifest(targetDir);
+    assert.equal(manifest.files.some(f => f.path === ".agents/workflows/check.md"), false);
+  });
+});
+
+test("migration: preserves locally modified workflow", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const checkPath = path.join(targetDir, ".agents/workflows/check.md");
+    await writeFile(checkPath, "modified content", "utf8");
+
+    const result = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(result.retirement.preserved.some(p => p.path === ".agents/workflows/check.md" && p.reason === "locally-modified"));
+    assert.ok(result.warnings.some(w => w.includes(".agents/workflows/check.md") && w.includes("locally-modified")));
+    assert.equal(await readFile(checkPath, "utf8"), "modified content");
+
+    const manifest = await readManifest(targetDir);
+    assert.ok(manifest.files.some(f => f.path === ".agents/workflows/check.md"));
+  });
+});
+
+test("migration: preserves unmanaged workflow", async () => {
+  await withTempProject(async (targetDir) => {
+    const checkPath = path.join(targetDir, ".agents/workflows/check.md");
+    await mkdir(path.dirname(checkPath), { recursive: true });
+    await writeFile(checkPath, "unmanaged content", "utf8");
+
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.preserved.some(p => p.path === ".agents/workflows/check.md" && p.reason === "not-managed" && p.status === "unmanaged"));
+    assert.equal(await readFile(checkPath, "utf8"), "unmanaged content");
+
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find(f => f.path === ".agents/workflows/check.md");
+    assert.equal(entry.status, "unmanaged");
+  });
+});
+
+test("migration: preserves untracked workflow", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    
+    // Remove it from manifest to make it untracked
+    const manifest = await readManifest(targetDir);
+    manifest.files = manifest.files.filter(f => f.path !== ".agents/workflows/check.md");
+    await writeFile(path.join(targetDir, ".codex-kit/manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.preserved.some(p => p.path === ".agents/workflows/check.md" && p.reason === "untracked"));
+    const existsAfter = await stat(path.join(targetDir, ".agents/workflows/check.md")).catch(() => null);
+    assert.ok(existsAfter);
+  });
+});
+
+test("migration: missing installed hash workflow", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    
+    // Remove installedHash
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find(f => f.path === ".agents/workflows/check.md");
+    delete entry.installedHash;
+    await writeFile(path.join(targetDir, ".codex-kit/manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.preserved.some(p => p.path === ".agents/workflows/check.md" && p.reason === "missing-installed-hash"));
+    const existsAfter = await stat(path.join(targetDir, ".agents/workflows/check.md")).catch(() => null);
+    assert.ok(existsAfter);
+  });
+});
+
+test("migration: dry-run reports planned changes without mutating", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const manifestPath = path.join(targetDir, ".codex-kit/manifest.json");
+    const before = await readFile(manifestPath, "utf8");
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      dryRun: true,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.deleted.includes(".agents/workflows/check.md"));
+    
+    const existsAfter = await stat(path.join(targetDir, ".agents/workflows/check.md")).catch(() => null);
+    assert.ok(existsAfter);
+
+    const after = await readFile(manifestPath, "utf8");
+    assert.equal(after, before);
+  });
+});
+
+test("migration: empty directory cleanup", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const manifest = await readManifest(targetDir);
+    const workflows = manifest.files.filter(f => f.path.startsWith(".agents/workflows/")).map(f => f.path);
+    const fullRetirement = [{ retiredIn: "1.3.0", paths: workflows }];
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: fullRetirement
+    });
+
+    assert.ok(retirement.directoriesRemoved.includes(".agents/workflows"));
+    const dirExists = await stat(path.join(targetDir, ".agents/workflows")).catch(() => null);
+    assert.equal(dirExists, null);
+  });
+});
+
+test("migration: directory retained with user files", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    
+    await writeFile(path.join(targetDir, ".agents/workflows/user.md"), "user file", "utf8");
+
+    const manifest = await readManifest(targetDir);
+    const workflows = manifest.files.filter(f => f.path.startsWith(".agents/workflows/")).map(f => f.path);
+    const fullRetirement = [{ retiredIn: "1.3.0", paths: workflows }];
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: fullRetirement
+    });
+
+    assert.equal(retirement.directoriesRemoved.includes(".agents/workflows"), false);
+    const dirExists = await stat(path.join(targetDir, ".agents/workflows")).catch(() => null);
+    assert.ok(dirExists);
+    assert.equal(await readFile(path.join(targetDir, ".agents/workflows/user.md"), "utf8"), "user file");
+  });
+});
+
+test("migration: mixed path separators", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find(f => f.path === ".agents/workflows/check.md");
+    entry.path = ".agents\\workflows\\check.md";
+    await writeFile(path.join(targetDir, ".codex-kit/manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const MOCK_WIN_RETIREMENT = [{
+      retiredIn: "1.3.0",
+      paths: [".agents\\workflows\\check.md"]
+    }];
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_WIN_RETIREMENT
+    });
+
+    assert.ok(retirement.deleted.includes(".agents/workflows/check.md"));
+  });
+});
+
+test("migration: second-run idempotency", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.equal(retirement.deleted.length, 0);
+    assert.equal(retirement.preserved.length, 0);
+    assert.equal(retirement.manifestEntriesRemoved.length, 0);
+  });
+});
+
+test("migration: --force preservation", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const checkPath = path.join(targetDir, ".agents/workflows/check.md");
+    const beforeManifest = await readManifest(targetDir);
+    const beforeEntry = beforeManifest.files.find(f => f.path === ".agents/workflows/check.md");
+
+    await writeFile(checkPath, "modified content", "utf8");
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      force: true,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.preserved.some(p => p.path === ".agents/workflows/check.md" && p.reason === "locally-modified"));
+    assert.equal(await readFile(checkPath, "utf8"), "modified content");
+
+    const afterManifest = await readManifest(targetDir);
+    const afterEntry = afterManifest.files.find(f => f.path === ".agents/workflows/check.md");
+    assert.equal(afterEntry.installedHash, beforeEntry.installedHash);
+    assert.equal(afterEntry.templateHash, beforeEntry.templateHash);
+  });
+});
+
+test("migration: fresh initialization behavior", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    const existsAfter = await stat(path.join(targetDir, ".agents/workflows/check.md")).catch(() => null);
+    assert.equal(existsAfter, null);
+
+    const manifest = await readManifest(targetDir);
+    assert.equal(manifest.files.some(f => f.path === ".agents/workflows/check.md"), false);
+  });
+});
+
+test("migration: preserves manifest entry for missing file with unknown status but valid installedHash", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    
+    const checkPath = path.join(targetDir, ".agents/workflows/check.md");
+    await rm(checkPath, { force: true });
+    
+    const manifest = await readManifest(targetDir);
+    const entry = manifest.files.find(f => f.path === ".agents/workflows/check.md");
+    entry.status = "unknown";
+    await writeFile(path.join(targetDir, ".codex-kit/manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.preserved.some(p => p.path === ".agents/workflows/check.md" && p.reason === "not-managed" && p.status === "unknown"));
+    
+    const newManifest = await readManifest(targetDir);
+    assert.ok(newManifest.files.some(f => f.path === ".agents/workflows/check.md"));
+  });
+});
+
+test("migration: default retirement migrations apply correctly to debug.md and review.md", async () => {
+  await withTempProject(async (targetDir) => {
+    // 1. Initialize to setup the manifest structure
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    // 2. Mock older version by creating debug.md and review.md manually
+    const debugPath = path.join(targetDir, ".agents/workflows/debug.md");
+    const reviewPath = path.join(targetDir, ".agents/workflows/review.md");
+    
+    const debugContentModified = "debug content modified";
+    const reviewContent = "review content unchanged";
+    
+    const reviewHash = crypto.createHash("sha256").update(reviewContent).digest("hex");
+    const debugOriginalHash = crypto.createHash("sha256").update("debug original").digest("hex");
+
+    await writeFile(debugPath, debugContentModified, "utf8");
+    await writeFile(reviewPath, reviewContent, "utf8");
+
+    // 3. Inject into manifest with correct hashes
+    const manifest = await readManifest(targetDir);
+    manifest.files.push(
+      { target: "project", path: ".agents/workflows/debug.md", status: "managed", installedHash: debugOriginalHash },
+      { target: "project", path: ".agents/workflows/review.md", status: "managed", installedHash: reviewHash }
+    );
+    await writeFile(path.join(targetDir, ".codex-kit/manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+    // 4. Update without passing retirementMigrations, falling back to real implementation
+    const { retirement, warnings } = await updateProject({ targetDir, templateRoot, pluginRoot, version });
+
+    // 5. Assert review.md is deleted
+    assert.ok(retirement.deleted.includes(".agents/workflows/review.md"));
+    const reviewExists = await stat(reviewPath).catch(() => null);
+    assert.equal(reviewExists, null);
+
+    // 6. Assert debug.md is preserved
+    assert.ok(retirement.preserved.some(p => p.path === ".agents/workflows/debug.md" && p.reason === "locally-modified"));
+    assert.equal(await readFile(debugPath, "utf8"), debugContentModified);
+    assert.ok(warnings.some(w => w.includes(".agents/workflows/debug.md") && w.includes("locally-modified")));
+
+    // 7. Verify manifest entries
+    const updatedManifest = await readManifest(targetDir);
+    assert.equal(updatedManifest.files.some(f => f.path === ".agents/workflows/review.md"), false);
+    assert.ok(updatedManifest.files.some(f => f.path === ".agents/workflows/debug.md"));
+  });
+});
+
+test("migration: empty directory cleanup occurs when file is already missing", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+
+    const manifest = await readManifest(targetDir);
+    const workflows = manifest.files.filter(f => f.path.startsWith(".agents/workflows/")).map(f => f.path);
+    const fullRetirement = [{ retiredIn: "1.3.0", paths: workflows }];
+
+    // Manually delete all files
+    for (const w of workflows) {
+      await rm(path.join(targetDir, w), { force: true });
+    }
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: fullRetirement
+    });
+
+    assert.ok(retirement.directoriesRemoved.includes(".agents/workflows"));
+    const dirExists = await stat(path.join(targetDir, ".agents/workflows")).catch(() => null);
+    assert.equal(dirExists, null);
+  });
+});
+
+test("migration: modified workflow runs update twice safely", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    const checkPath = path.join(targetDir, ".agents/workflows/check.md");
+    await writeFile(checkPath, "modified content", "utf8");
+
+    await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    const { retirement } = await updateProject({
+      targetDir, templateRoot, pluginRoot, version,
+      retirementMigrations: MOCK_RETIREMENT
+    });
+
+    assert.ok(retirement.preserved.some(p => p.path === ".agents/workflows/check.md" && p.reason === "locally-modified"));
+  });
+});
+
+test("migration: rejects path traversal (../)", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await assert.rejects(
+      updateProject({
+        targetDir, templateRoot, pluginRoot, version,
+        retirementMigrations: [{ retiredIn: "1.3.0", paths: ["../workflows/check.md"] }]
+      }),
+      /Invalid retired path: traversal not allowed/
+    );
+  });
+});
+
+test("migration: rejects path traversal (./)", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await assert.rejects(
+      updateProject({
+        targetDir, templateRoot, pluginRoot, version,
+        retirementMigrations: [{ retiredIn: "1.3.0", paths: [".agents/workflows/./check.md"] }]
+      }),
+      /Invalid retired path: traversal not allowed/
+    );
+  });
+});
+
+test("migration: rejects absolute path (POSIX)", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await assert.rejects(
+      updateProject({
+        targetDir, templateRoot, pluginRoot, version,
+        retirementMigrations: [{ retiredIn: "1.3.0", paths: ["/etc/passwd"] }]
+      }),
+      /Invalid retired path: absolute path not allowed/
+    );
+  });
+});
+
+test("migration: rejects absolute path (Windows)", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await assert.rejects(
+      updateProject({
+        targetDir, templateRoot, pluginRoot, version,
+        retirementMigrations: [{ retiredIn: "1.3.0", paths: ["C:\\Windows\\System32\\cmd.exe"] }]
+      }),
+      /Invalid retired path: absolute path not allowed/
+    );
+  });
+});
+
+test("migration: rejects UNC path", async () => {
+  await withTempProject(async (targetDir) => {
+    await initProject({ targetDir, templateRoot, pluginRoot, version });
+    await assert.rejects(
+      updateProject({
+        targetDir, templateRoot, pluginRoot, version,
+        retirementMigrations: [{ retiredIn: "1.3.0", paths: ["\\\\server\\share\\file.md"] }]
+      }),
+      /Invalid retired path: absolute path not allowed/
+    );
   });
 });

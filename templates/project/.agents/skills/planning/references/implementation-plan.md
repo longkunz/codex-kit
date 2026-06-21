@@ -8,14 +8,16 @@ Turn ambiguous work into a plan another agent can execute without reopening core
 
 Produce plans that answer all of these points:
 1. **Goal**: what will be true when the task is done.
-2. **Scope**: what is included and what is explicitly excluded (non-goals).
-3. **Assumptions**: facts treated as true until disproved.
-4. **Dependencies**: tools, services, approvals, inputs, or files required.
-5. **Sequence (Task Breakdown)**: the ordered work with critical-path awareness.
-6. **Acceptance Criteria**: observable checks for completion.
-7. **Risks**: likely failure modes and how to handle them.
-8. **Validation Plan**: how to verify the work (Verification is always LAST).
-9. **Open questions**: only if they block a safe decision.
+2. **Current State Summary**: brief context on how things work today.
+3. **Scope**: what is included and what is explicitly excluded (non-goals).
+4. **Affected Surfaces**: APIs, data schemas, migrations, and configuration changes.
+5. **Assumptions**: facts treated as true until disproved.
+6. **Dependencies**: tools, services, approvals, inputs, or files required.
+7. **Sequence (Task Breakdown)**: the ordered work with critical-path awareness.
+8. **Acceptance Criteria**: observable checks for completion.
+9. **Risks**: likely failure modes and how to handle them.
+10. **Validation Plan**: how to verify the work (Verification is always LAST).
+11. **Open questions**: only if they block a safe decision.
 
 ## Task Breakdown Principles
 
@@ -34,6 +36,9 @@ Use the lightest structure that still removes ambiguity.
 
 ## Goal & Scope
 One sentence: What are we building/fixing? What are the non-goals?
+
+## Current State & Surfaces
+Briefly describe the current state and list any APIs, data schemas, migrations, or configurations that will change.
 
 ## Risks & Dependencies
 - Risk 1 -> Mitigation
