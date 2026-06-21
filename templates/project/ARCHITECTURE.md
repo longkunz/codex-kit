@@ -40,13 +40,10 @@ The goal is to keep the system small, composable, and explicit. Skills provide k
 │   └── workflows/
 │       ├── check.md
 │       ├── create.md
-│       ├── enhance.md
-│       ├── plan.md
 │       ├── preview.md
 │       ├── review.md
 │       ├── status.md
-│       ├── ui-ux-pro-max.md
-│       └── verify.md
+│       └── ui-ux-pro-max.md
 ├── .codex/
 │   ├── config.toml
 │   └── agents/

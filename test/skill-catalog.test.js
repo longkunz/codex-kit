@@ -112,8 +112,7 @@ const EXPECTED_WORKFLOWS = [
   "figma-to-code.md",
   "preview.md",
   "status.md",
-  "ui-ux-pro-max.md",
-  "verify.md"
+  "ui-ux-pro-max.md"
 ].sort();
 
 async function withTempProject(fn) {
@@ -396,9 +395,9 @@ test("unknown skill exits without partial install", async () => {
   });
 });
 
-test("workflow bundle remains 8 independent workflows with parallel-agents intact", async () => {
+test("workflow bundle remains 7 independent workflows with parallel-agents intact", async () => {
   assert.deepEqual((await readdir(workflowRoot)).sort(), EXPECTED_WORKFLOWS);
-  assert.equal((await readdir(workflowRoot)).length, 8);
+  assert.equal((await readdir(workflowRoot)).length, 7);
   assert.ok((await readdir(skillsRoot)).includes("parallel-agents"));
 });
 

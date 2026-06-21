@@ -38,7 +38,8 @@ const RETIREMENT_MIGRATIONS = Object.freeze([
       ".agents/workflows/plan.md",
       ".agents/workflows/review.md",
       ".agents/workflows/ship.md",
-      ".agents/workflows/test.md"
+      ".agents/workflows/test.md",
+      ".agents/workflows/verify.md"
     ])
   }
 ]);

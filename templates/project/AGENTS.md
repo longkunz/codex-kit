@@ -66,9 +66,19 @@ When delegating to a subagent, include the preferred skill set in the task hando
 
 - Use `.agents/workflows/check.md` for fast local validation.
 - Load `testing` when test execution or test authoring is the main task.
-- Use `.agents/workflows/verify.md` for deeper release readiness checks.
 - Load `release-deployment` for deployment preparation, execution, or release handoff summary.
 - Use `devops_engineer` for CI, environment, and deployment-specific work.
+- Validation Routing Policy:
+  - Route routine checks to the smallest relevant validation skill.
+  - Escalate release-sensitive or cross-system changes to `test-hardening` and `release-deployment`.
+  - Route browser-visible behavior to `webapp-testing` if applicable.
+- Verification Results Policy: When verifying, the results must report:
+  - Commands/checks performed.
+  - Outcomes.
+  - Skipped checks.
+  - Blockers or warnings.
+  - Anything still unverified.
+  - Residual risk.
 - Load `test-hardening`, `documentation`, `mcp-onboarding`, and `release-deployment` when the task affects rollout, migrations, verification depth, or deploy risk.
   Preferred pairings:
   `test_writer` -> `test-hardening`, `testing`, `tdd-workflow`, `webapp-testing`

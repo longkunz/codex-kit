@@ -17,9 +17,11 @@ Strengthen trust in the system by improving the tests that matter most, not by m
 
 - flaky tests and nondeterministic setup
 - critical business flows with weak assertions
-- edge cases around errors, retries, empty states, and bad inputs
+- edge and failure-path validation
 - integration points that are mocked too aggressively
 - missing regression coverage for recent incidents
+- broader automated coverage for release-sensitive or cross-cutting changes
+- regression confidence
 
 ## Workflow
 
@@ -35,7 +37,7 @@ Summarize:
 
 - what was previously unproven
 - what is now covered
-- any remaining blind spots
+- explicit unverified areas and remaining blind spots
 - follow-up tests worth adding later
 
 ## Preferred Pairings

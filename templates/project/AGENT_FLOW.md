@@ -41,7 +41,6 @@ Once the primary mode is clear, route to the narrowest workflow:
 | local preview management | `preview.md` |
 | project or task status request | `status.md` |
 | quick validation | `check.md` |
-| deeper release validation | `verify.md` |
 | review code changes or PRs | `review.md` |
 
 The workflow gives the process skeleton for the task.

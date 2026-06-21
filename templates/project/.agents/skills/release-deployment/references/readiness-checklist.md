@@ -14,5 +14,6 @@ Review whether a change is safe to merge, deploy, and roll back. Focus on concre
 - **Rollout coupling**: feature flags, config switches, sequencing, and phased enablement.
 - **Deployment impact**: build, env vars, infra assumptions, runtime compatibility, and startup behavior.
 - **Migration safety**: backward compatibility, data shape transitions, dual-read or dual-write needs, and ordering constraints.
-- **Rollback readiness**: whether old and new versions can coexist and whether rollback leaves data or traffic in a broken state.
+- **Rollback readiness**: whether old and new versions can coexist and whether rollback leaves data or traffic in a broken state. Also verify deploy and rollback assumptions.
+- **Operational coupling**: verify secrets, environment readiness, background jobs, queues or scheduled jobs, external integrations, schema compatibility, and operational health checks.
 - **Operational stability**: rate limits, timeouts, retries, and failure containment.
