@@ -18,7 +18,7 @@ When delegating to a subagent, include the preferred skill set in the task hando
 
 ### Planning and Discovery
 
-- Use `.agents/workflows/brainstorm.md` for vague or strategic requests.
+- Load `brainstorming` for vague or strategic requests.
 - Use `.agents/workflows/plan.md` when the user wants a task breakdown before code changes.
 - Prefer the `planner` subagent for decomposition, success criteria, and sequencing.
 - Prefer the `explorer` subagent when repository mapping or dependency tracing is the immediate need.

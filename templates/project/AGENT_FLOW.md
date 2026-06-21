@@ -34,7 +34,6 @@ Once the primary mode is clear, route to the narrowest workflow:
 
 | Request Type | Workflow |
 | --- | --- |
-| vague feature or strategy request | `brainstorm.md` |
 | user asks for an implementation plan | `plan.md` |
 | new feature or structured code work | `create.md` |
 | iterative change to an existing feature | `enhance.md` |
@@ -57,6 +56,7 @@ After workflow selection, load only the skills that improve the current task.
 
 Examples:
 
+- `brainstorming` for vague or strategy requests
 - `planning` for decomposition and sequencing
 - `repo-onboarding` for first-pass repository mapping
 - `debugging` for reproduction-led debugging

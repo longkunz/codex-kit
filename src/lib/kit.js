@@ -31,6 +31,7 @@ const RETIREMENT_MIGRATIONS = Object.freeze([
   {
     retiredIn: "1.3.0",
     paths: Object.freeze([
+      ".agents/workflows/brainstorm.md",
       ".agents/workflows/debug.md",
       ".agents/workflows/review.md"
     ])

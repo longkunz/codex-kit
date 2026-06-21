@@ -38,7 +38,6 @@ The goal is to keep the system small, composable, and explicit. Skills provide k
 │   │       ├── data/
 │   │       └── scripts/
 │   └── workflows/
-│       ├── brainstorm.md
 │       ├── check.md
 │       ├── create.md
 │       ├── deploy.md
@@ -108,7 +107,6 @@ Workflows live in `.agents/workflows/*.md`.
 
 They define repeatable playbooks for common task types such as:
 
-- brainstorming
 - planning
 - creating
 - enhancing

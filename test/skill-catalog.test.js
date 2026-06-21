@@ -106,7 +106,6 @@ const STATIC_PROFILES = {
 };
 
 const EXPECTED_WORKFLOWS = [
-  "brainstorm.md",
   "check.md",
   "create.md",
   "deploy.md",
@@ -402,9 +401,9 @@ test("unknown skill exits without partial install", async () => {
   });
 });
 
-test("workflow bundle remains 14 independent workflows with parallel-agents intact", async () => {
+test("workflow bundle remains 13 independent workflows with parallel-agents intact", async () => {
   assert.deepEqual((await readdir(workflowRoot)).sort(), EXPECTED_WORKFLOWS);
-  assert.equal((await readdir(workflowRoot)).length, 14);
+  assert.equal((await readdir(workflowRoot)).length, 13);
   assert.ok((await readdir(skillsRoot)).includes("parallel-agents"));
   assert.ok((await readdir(workflowRoot)).includes("orchestrate.md"));
   assert.equal((await readdir(skillsRoot)).includes("orchestrate.md"), false);
